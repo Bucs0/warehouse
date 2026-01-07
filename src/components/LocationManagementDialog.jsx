@@ -1,4 +1,4 @@
-// Dialog for managing warehouse locations (add, edit, delete)
+// ✅ FIXED LocationManagementDialog.jsx - Proper null checks
 
 import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog'
@@ -37,29 +37,36 @@ export default function LocationManagementDialog({
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!formData.locationName.trim()) {
       alert('Please enter a location name')
       return
     }
 
-    const duplicate = locations.find(
-      loc => loc.locationName.toLowerCase() === formData.locationName.toLowerCase()
-    )
+    // ✅ FIX: Safe comparison with null checks
+    const duplicate = locations.find(loc => {
+      const locName = loc.locationName || loc.location_name || ''
+      return locName.toLowerCase() === formData.locationName.toLowerCase()
+    })
+    
     if (duplicate) {
       alert(`Location "${formData.locationName}" already exists!`)
       return
     }
 
-    onAddLocation({
-      id: Date.now(),
-      locationName: formData.locationName.trim(),
-      description: formData.description.trim(),
-      dateAdded: new Date().toLocaleDateString('en-PH')
-    })
+    try {
+      await onAddLocation({
+        locationName: formData.locationName.trim(),
+        description: formData.description.trim(),
+        dateAdded: new Date().toLocaleDateString('en-PH')
+      })
 
-    setFormData({ locationName: '', description: '' })
-    setIsAddMode(false)
+      setFormData({ locationName: '', description: '' })
+      setIsAddMode(false)
+    } catch (error) {
+      console.error('Failed to add location:', error)
+      // Error will be handled by parent component
+    }
   }
 
   const handleEdit = () => {
@@ -68,10 +75,13 @@ export default function LocationManagementDialog({
       return
     }
 
-    const duplicate = locations.find(
-      loc => loc.id !== editingLocation.id && 
-      loc.locationName.toLowerCase() === formData.locationName.toLowerCase()
-    )
+    // ✅ FIX: Safe comparison with null checks
+    const duplicate = locations.find(loc => {
+      if (loc.id === editingLocation.id) return false
+      const locName = loc.locationName || loc.location_name || ''
+      return locName.toLowerCase() === formData.locationName.toLowerCase()
+    })
+    
     if (duplicate) {
       alert(`Location "${formData.locationName}" already exists!`)
       return
@@ -90,32 +100,46 @@ export default function LocationManagementDialog({
   const startEdit = (location) => {
     setEditingLocation(location)
     setFormData({
-      locationName: location.locationName,
+      locationName: location.locationName || location.location_name || '',
       description: location.description || ''
     })
     setIsAddMode(false)
   }
 
   const handleDelete = (location) => {
-    const itemCount = getLocationItemCount(location.locationName)
+    const locationName = location.locationName || location.location_name || ''
+    const itemCount = getLocationItemCount(locationName)
+    
     if (itemCount > 0) {
-      alert(`Cannot delete location "${location.locationName}" because it has ${itemCount} item(s). Please move or remove items first.`)
+      alert(`Cannot delete location "${locationName}" because it has ${itemCount} item(s). Please move or remove items first.`)
       return
     }
     
-    if (window.confirm(`Are you sure you want to delete location "${location.locationName}"?`)) {
+    if (window.confirm(`Are you sure you want to delete location "${locationName}"?`)) {
       onDeleteLocation(location.id)
     }
   }
 
   const getLocationItemCount = (locationName) => {
-    return inventoryData.filter(item => item.location === locationName).length
+    if (!locationName) return 0
+    
+    return inventoryData.filter(item => {
+      const itemLocation = item.location || item.location_name || ''
+      return itemLocation.toLowerCase() === locationName.toLowerCase()
+    }).length
   }
 
-  const filteredLocations = locations.filter(location =>
-    location.locationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (location.description && location.description.toLowerCase().includes(searchTerm.toLowerCase()))
-  )
+  // ✅ FIX: Safe filtering with null checks
+  const filteredLocations = locations.filter(location => {
+    if (!location) return false
+    
+    const locationName = location.locationName || location.location_name || ''
+    const description = location.description || ''
+    const search = searchTerm.toLowerCase()
+    
+    return locationName.toLowerCase().includes(search) ||
+           description.toLowerCase().includes(search)
+  })
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -201,13 +225,19 @@ export default function LocationManagementDialog({
             <div className="p-4 bg-green-50 rounded-lg border border-green-200">
               <p className="text-sm text-green-600 font-medium">In Use</p>
               <p className="text-2xl font-bold text-green-900 mt-1">
-                {locations.filter(loc => getLocationItemCount(loc.locationName) > 0).length}
+                {locations.filter(loc => {
+                  const locName = loc.locationName || loc.location_name || ''
+                  return getLocationItemCount(locName) > 0
+                }).length}
               </p>
             </div>
             <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
               <p className="text-sm text-gray-600 font-medium">Empty</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">
-                {locations.filter(loc => getLocationItemCount(loc.locationName) === 0).length}
+                {locations.filter(loc => {
+                  const locName = loc.locationName || loc.location_name || ''
+                  return getLocationItemCount(locName) === 0
+                }).length}
               </p>
             </div>
           </div>
@@ -245,10 +275,13 @@ export default function LocationManagementDialog({
                   </TableRow>
                 ) : (
                   filteredLocations.map((location) => {
-                    const itemCount = getLocationItemCount(location.locationName)
+                    const locationName = location.locationName || location.location_name || 'Unknown'
+                    const itemCount = getLocationItemCount(locationName)
+                    const dateAdded = location.dateAdded || location.date_added || 'N/A'
+                    
                     return (
                       <TableRow key={location.id}>
-                        <TableCell className="font-medium">{location.locationName}</TableCell>
+                        <TableCell className="font-medium">{locationName}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {location.description || 'No description'}
                         </TableCell>
@@ -258,7 +291,7 @@ export default function LocationManagementDialog({
                           </Badge>
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
-                          {location.dateAdded}
+                          {dateAdded}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">

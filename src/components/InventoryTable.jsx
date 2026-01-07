@@ -1,4 +1,4 @@
-// ✅ FIXED VERSION - InventoryTable.jsx with proper dataMapper import
+// ✅ CLEAN PRODUCTION VERSION - InventoryTable.jsx
 
 import { useState, useMemo, useEffect } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card'
@@ -9,7 +9,6 @@ import { Input } from './ui/input'
 import AddItemDialog from './AddItemDialog'
 import EditItemDialog from './EditItemDialog'
 import LocationManagementDialog from './LocationManagementDialog'
-import { normalizeInventoryItems } from '../lib/dataMapper'
 
 export default function InventoryTable({ 
   user, 
@@ -30,102 +29,64 @@ export default function InventoryTable({
   const [filterStatus, setFilterStatus] = useState('all')
   const [isLocationDialogOpen, setIsLocationDialogOpen] = useState(false)
 
-  // Enhanced debug logging
-  useEffect(() => {
-    console.group('🔍 InventoryTable Debug Info')
-    console.log('Raw inventoryData:', inventoryData)
-    console.log('Is Array?', Array.isArray(inventoryData))
-    console.log('Length:', inventoryData?.length)
-    console.log('First Item:', inventoryData?.[0])
-    console.log('User:', user)
-    console.log('Categories:', categories)
-    console.log('Locations:', locations)
-    console.log('Suppliers:', suppliers)
-    console.groupEnd()
-  }, [inventoryData, user, categories, locations, suppliers])
+  // Simple normalization - handles both camelCase and snake_case
+  const normalizeItem = (item) => {
+    if (!item) return null
+    
+    return {
+      id: item.id,
+      itemName: item.item_name || item.itemName || 'Unknown Item',
+      category: item.category || item.category_name || 'Uncategorized',
+      quantity: Number(item.quantity) || 0,
+      location: item.location || item.location_name || 'No Location',
+      reorderLevel: Number(item.reorder_level || item.reorderLevel) || 10,
+      price: Number(item.price) || 0,
+      supplier: item.supplier || item.supplier_name || '',
+      supplierId: item.supplier_id || item.supplierId,
+      damagedStatus: item.damaged_status || item.damagedStatus || 'Good'
+    }
+  }
 
-  // ✅ FIXED: Proper normalization using dataMapper
+  // Normalize inventory data
   const normalizedInventory = useMemo(() => {
-    console.log('🔄 Starting normalization...')
-    
-    if (!inventoryData) {
-      console.warn('⚠️ No inventoryData provided')
-      return []
-    }
-    
-    if (!Array.isArray(inventoryData)) {
-      console.error('❌ inventoryData is not an array:', typeof inventoryData)
-      return []
-    }
-    
-    try {
-      const normalized = normalizeInventoryItems(inventoryData)
-      console.log('✅ Normalized:', normalized.length, 'items')
-      console.log('First normalized item:', normalized[0])
-      return normalized
-    } catch (error) {
-      console.error('❌ Normalization error:', error)
-      // Fallback: return items as-is if normalization fails
-      return inventoryData.map(item => ({
-        id: item.id,
-        itemName: item.item_name || item.itemName || 'Unknown',
-        category: item.category || 'N/A',
-        quantity: item.quantity || 0,
-        location: item.location || 'N/A',
-        reorderLevel: item.reorder_level || item.reorderLevel || 0,
-        price: item.price || 0,
-        supplier: item.supplier || '',
-        supplierId: item.supplier_id || item.supplierId,
-        damagedStatus: item.damaged_status || item.damagedStatus || 'Good'
-      }))
-    }
+    if (!inventoryData || !Array.isArray(inventoryData)) return []
+    return inventoryData.map(normalizeItem).filter(Boolean)
   }, [inventoryData])
 
-  // ✅ FIXED: Better filtering with null checks
+  // Filter items
   const filteredItems = useMemo(() => {
     return normalizedInventory.filter(item => {
       if (!item) return false
       
-      try {
-        const itemName = (item.itemName || '').toLowerCase()
-        const category = (item.category || '').toLowerCase()
-        const location = (item.location || '').toLowerCase()
-        const search = searchTerm.toLowerCase()
-        
-        const matchesSearch = itemName.includes(search) ||
-                             category.includes(search) ||
-                             location.includes(search)
-        
-        let matchesStatus = true
-        if (filterStatus === 'low-stock') {
-          const qty = item.quantity || 0
-          const reorder = item.reorderLevel || 0
-          matchesStatus = qty <= reorder
-        }
-
-        return matchesSearch && matchesStatus
-      } catch (error) {
-        console.error('❌ Filter error:', error, item)
-        return false
+      const itemName = String(item.itemName || '').toLowerCase()
+      const category = String(item.category || '').toLowerCase()
+      const location = String(item.location || '').toLowerCase()
+      const search = searchTerm.toLowerCase()
+      
+      const matchesSearch = itemName.includes(search) ||
+                           category.includes(search) ||
+                           location.includes(search)
+      
+      let matchesStatus = true
+      if (filterStatus === 'low-stock') {
+        matchesStatus = item.quantity <= item.reorderLevel
       }
+
+      return matchesSearch && matchesStatus
     })
   }, [normalizedInventory, searchTerm, filterStatus])
 
-  // Count low stock items
   const lowStockCount = normalizedInventory.filter(item => 
-    (item.quantity || 0) <= (item.reorderLevel || 0)
+    item.quantity <= item.reorderLevel
   ).length
 
-  console.log('📊 Final filtered items:', filteredItems.length)
-
   const handleDelete = (item) => {
-    const name = item.itemName || 'this item'
-    if (window.confirm(`Are you sure you want to delete "${name}"?`)) {
+    if (window.confirm(`Delete "${item.itemName}"?`)) {
       onDeleteItem(item.id)
     }
   }
 
-  // ✅ FIXED: Show loading state
+  // Loading state
   if (!inventoryData) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -138,11 +99,17 @@ export default function InventoryTable({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* MAIN INVENTORY CARD */}
       <Card>
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <CardTitle>Inventory Management</CardTitle>
+            <div>
+              <CardTitle>Inventory Management</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                {normalizedInventory.length} total items • {filteredItems.length} showing
+              </p>
+            </div>
             
             {user?.role === 'Admin' && (
               <div className="flex gap-2">
@@ -152,9 +119,8 @@ export default function InventoryTable({
                 >
                   <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
-                  Manage Locations
+                  Locations
                 </Button>
                 <Button onClick={() => setIsAddDialogOpen(true)}>
                   <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -166,6 +132,7 @@ export default function InventoryTable({
             )}
           </div>
 
+          {/* Search and Filters */}
           <div className="flex flex-col md:flex-row gap-4 mt-4">
             <div className="flex-1">
               <Input
@@ -216,32 +183,20 @@ export default function InventoryTable({
                       <div className="space-y-4">
                         {normalizedInventory.length === 0 ? (
                           <>
-                            <div className="text-6xl mb-4">📦</div>
-                            <div className="text-lg font-semibold">No inventory items found</div>
-                            <div className="text-sm text-muted-foreground max-w-md mx-auto">
-                              {inventoryData?.length === 0 ? (
-                                <>
-                                  <p className="mb-3">Your database appears to be empty.</p>
-                                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left">
-                                    <p className="font-semibold mb-2">Quick Fix:</p>
-                                    <ol className="space-y-1 text-sm">
-                                      <li>1. Open terminal in backend folder</li>
-                                      <li>2. Run: <code className="bg-blue-100 px-2 py-1 rounded">node setup.js</code></li>
-                                      <li>3. Refresh this page</li>
-                                    </ol>
-                                  </div>
-                                </>
-                              ) : (
-                                <p>Add your first item using the "Add Item" button above</p>
-                              )}
+                            <div className="text-6xl">📦</div>
+                            <div className="text-xl font-bold">No Items Found</div>
+                            <div className="text-muted-foreground">
+                              <p>Add your first item using the "Add Item" button above</p>
                             </div>
                           </>
                         ) : (
                           <>
-                            <div className="text-4xl mb-4">🔍</div>
-                            <div className="text-lg font-semibold">No items match your search</div>
+                            <div className="text-4xl">🔍</div>
+                            <div className="text-lg font-semibold">No Match Found</div>
                             <div className="text-sm text-muted-foreground">
-                              Try adjusting your filters or search term
+                              {searchTerm && <p>Search: "{searchTerm}"</p>}
+                              {filterStatus !== 'all' && <p>Filter: {filterStatus}</p>}
+                              <p className="mt-2">Try different search terms or filters</p>
                             </div>
                           </>
                         )}
@@ -316,6 +271,7 @@ export default function InventoryTable({
         </CardContent>
       </Card>
 
+      {/* DIALOGS */}
       <AddItemDialog
         open={isAddDialogOpen}
         onOpenChange={setIsAddDialogOpen}

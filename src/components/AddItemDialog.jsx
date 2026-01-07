@@ -1,3 +1,4 @@
+// ✅ FIXED AddItemDialog.jsx - Shows proper location names
 
 import { useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog'
@@ -35,7 +36,7 @@ export default function AddItemDialog({
       setFormData(prev => ({
         ...prev,
         supplierId: selectedSupplier.id,
-        supplier: selectedSupplier.supplierName
+        supplier: selectedSupplier.supplierName || selectedSupplier.supplier_name || ''
       }))
     } else {
       setFormData(prev => ({
@@ -106,11 +107,14 @@ export default function AddItemDialog({
               onChange={(e) => handleChange('category', e.target.value)}
             >
               {categories && categories.length > 0 ? (
-                categories.map(cat => (
-                  <option key={cat.id} value={cat.categoryName}>
-                    {cat.categoryName}
-                  </option>
-                ))
+                categories.map(cat => {
+                  const categoryName = cat.categoryName || cat.category_name || 'Unknown'
+                  return (
+                    <option key={cat.id} value={categoryName}>
+                      {categoryName}
+                    </option>
+                  )
+                })
               ) : (
                 <>
                   <option value="Office Supplies">Office Supplies</option>
@@ -132,12 +136,15 @@ export default function AddItemDialog({
             >
               <option value="">Select Supplier (Optional)...</option>
               {suppliers
-                .filter(s => s.isActive)
-                .map(supplier => (
-                  <option key={supplier.id} value={supplier.id}>
-                    {supplier.supplierName}
-                  </option>
-                ))
+                .filter(s => s.isActive || s.is_active)
+                .map(supplier => {
+                  const supplierName = supplier.supplierName || supplier.supplier_name || 'Unknown'
+                  return (
+                    <option key={supplier.id} value={supplier.id}>
+                      {supplierName}
+                    </option>
+                  )
+                })
               }
             </Select>
           </div>
@@ -182,12 +189,18 @@ export default function AddItemDialog({
                 required
               >
                 <option value="">Select Location...</option>
-                {locations.map(location => (
-                  <option key={location.id} value={location.locationName}>
-                    {location.locationName}
-                    {location.description && ` - ${location.description}`}
-                  </option>
-                ))}
+                {locations.map(location => {
+                  // ✅ FIX: Get the proper location name
+                  const locationName = location.locationName || location.location_name || 'Unknown Location'
+                  const description = location.description || ''
+                  
+                  return (
+                    <option key={location.id} value={locationName}>
+                      {locationName}
+                      {description && ` - ${description}`}
+                    </option>
+                  )
+                })}
               </Select>
             ) : (
               <div className="text-sm text-muted-foreground border rounded-lg p-3 bg-yellow-50">

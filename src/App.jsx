@@ -43,6 +43,17 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
 
+  // Monitor app state (optional - can be removed in production)
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('App State:', {
+        user: currentUser?.name,
+        page: currentPage,
+        dataLoaded: !isLoading
+      })
+    }
+  }, [currentUser, currentPage, isLoading])
+
   // Load all data when user logs in
   useEffect(() => {
     if (currentUser) {
@@ -84,7 +95,7 @@ export default function App() {
       setDamagedItems(damaged)
       setActivityLogs(logs)
     } catch (err) {
-      console.error('Error loading data:', err)
+      console.error('❌ Error loading data:', err)
       setError('Failed to load data. Please refresh the page.')
     } finally {
       setIsLoading(false)
@@ -170,9 +181,8 @@ export default function App() {
   const handleAddItem = async (newItem) => {
     try {
       // Find category ID and location ID
-      const category = categories.find(c => c.category_name === newItem.category)
-      const location = locations.find(l => l.location_name === newItem.location)
-      const supplier = suppliers.find(s => s.id === newItem.supplierId)
+      const category = categories.find(c => c.category_name === newItem.category || c.categoryName === newItem.category)
+      const location = locations.find(l => l.location_name === newItem.location || l.locationName === newItem.location)
       
       await inventoryAPI.add({
         itemName: newItem.itemName,
@@ -205,8 +215,8 @@ export default function App() {
       const oldItem = inventoryData.find(item => item.id === updatedItem.id)
       
       // Find category ID and location ID
-      const category = categories.find(c => c.category_name === updatedItem.category)
-      const location = locations.find(l => l.location_name === updatedItem.location)
+      const category = categories.find(c => c.category_name === updatedItem.category || c.categoryName === updatedItem.category)
+      const location = locations.find(l => l.location_name === updatedItem.location || l.locationName === updatedItem.location)
       
       await inventoryAPI.update(updatedItem.id, {
         itemName: updatedItem.itemName,
@@ -249,7 +259,7 @@ export default function App() {
       await inventoryAPI.delete(itemId)
       
       await addActivityLog(
-        item.item_name,
+        item.item_name || item.itemName,
         'Deleted',
         'Item removed from inventory'
       )
@@ -359,7 +369,7 @@ export default function App() {
       await categoriesAPI.delete(categoryId)
       
       await addActivityLog(
-        category.category_name,
+        category.category_name || category.categoryName,
         'Deleted',
         'Category removed'
       )
@@ -425,7 +435,7 @@ export default function App() {
       await locationsAPI.delete(locationId)
       
       await addActivityLog(
-        `Location: ${location.location_name}`,
+        `Location: ${location.location_name || location.locationName}`,
         'Deleted',
         'Location removed from warehouse'
       )
@@ -490,7 +500,7 @@ export default function App() {
       await suppliersAPI.delete(supplierId)
       
       await addActivityLog(
-        supplier.supplier_name,
+        supplier.supplier_name || supplier.supplierName,
         'Deleted',
         'Supplier removed'
       )
@@ -844,21 +854,23 @@ export default function App() {
           />
         )}
 
+        {/* Manage Inventory Page */}
         {currentPage === 'inventory' && currentUser.role === 'Admin' && (
           <InventoryTable
-            user={currentUser}
-            inventoryData={inventoryData}
-            suppliers={suppliers}
-            categories={categories}
-            locations={locations}
-            onAddItem={handleAddItem}
-            onEditItem={handleEditItem}
-            onDeleteItem={handleDeleteItem}
-            onAddLocation={handleAddLocation}
-            onEditLocation={handleEditLocation}
-            onDeleteLocation={handleDeleteLocation}
-          />
-        )}
+              user={currentUser}
+              inventoryData={inventoryData}
+              suppliers={suppliers}
+              categories={categories}
+              locations={locations}
+              onAddItem={handleAddItem}
+              onEditItem={handleEditItem}
+              onDeleteItem={handleDeleteItem}
+              onAddLocation={handleAddLocation}
+              onEditLocation={handleEditLocation}
+              onDeleteLocation={handleDeleteLocation}
+            />
+          )
+        })()
 
         {currentPage === 'suppliers' && (
           <SuppliersPage
