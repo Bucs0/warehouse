@@ -1,28 +1,28 @@
-// Centralized Data Normalization Utility
-// Handles both camelCase (frontend) and snake_case (database) naming conventions
+// ✅ COMPLETE DATA MAPPER - Handles both camelCase and snake_case
+// This file normalizes data from the database (snake_case) to frontend (camelCase)
 
 /**
  * Normalize Inventory Item
- * Handles items from database or frontend state
+ * Handles items from database (snake_case) or frontend state (camelCase)
  */
 export const normalizeInventoryItem = (item) => {
   if (!item) return null
   
   return {
     id: item.id,
-    itemName: item.item_name || item.itemName,
-    category: item.category_name || item.category,
-    categoryId: item.category_id || item.categoryId,
-    quantity: item.quantity,
-    location: item.location_name || item.location,
-    locationId: item.location_id || item.locationId,
-    reorderLevel: item.reorder_level || item.reorderLevel,
-    price: item.price,
-    supplier: item.supplier_name || item.supplier,
-    supplierId: item.supplier_id || item.supplierId,
-    damagedStatus: item.damaged_status || item.damagedStatus,
-    dateAdded: item.date_added || item.dateAdded,
-    createdAt: item.created_at || item.createdAt
+    itemName: item.item_name || item.itemName || '',
+    category: item.category || item.category_name || '',
+    categoryId: item.category_id || item.categoryId || null,
+    quantity: Number(item.quantity) || 0,
+    location: item.location || item.location_name || '',
+    locationId: item.location_id || item.locationId || null,
+    reorderLevel: Number(item.reorder_level || item.reorderLevel) || 0,
+    price: Number(item.price) || 0,
+    supplier: item.supplier || item.supplier_name || '',
+    supplierId: item.supplier_id || item.supplierId || null,
+    damagedStatus: item.damaged_status || item.damagedStatus || 'Good',
+    dateAdded: item.date_added || item.dateAdded || '',
+    createdAt: item.created_at || item.createdAt || ''
   }
 }
 
@@ -30,7 +30,10 @@ export const normalizeInventoryItem = (item) => {
  * Normalize array of inventory items
  */
 export const normalizeInventoryItems = (items) => {
-  if (!Array.isArray(items)) return []
+  if (!Array.isArray(items)) {
+    console.warn('normalizeInventoryItems: Expected array, got:', typeof items)
+    return []
+  }
   return items.map(normalizeInventoryItem).filter(Boolean)
 }
 
@@ -42,14 +45,14 @@ export const normalizeSupplier = (supplier) => {
   
   return {
     id: supplier.id,
-    supplierName: supplier.supplier_name || supplier.supplierName,
-    contactPerson: supplier.contact_person || supplier.contactPerson,
-    contactEmail: supplier.contact_email || supplier.contactEmail,
-    contactPhone: supplier.contact_phone || supplier.contactPhone,
-    address: supplier.address,
-    isActive: supplier.is_active !== undefined ? supplier.is_active : supplier.isActive,
-    dateAdded: supplier.date_added || supplier.dateAdded,
-    createdAt: supplier.created_at || supplier.createdAt
+    supplierName: supplier.supplier_name || supplier.supplierName || '',
+    contactPerson: supplier.contact_person || supplier.contactPerson || '',
+    contactEmail: supplier.contact_email || supplier.contactEmail || '',
+    contactPhone: supplier.contact_phone || supplier.contactPhone || '',
+    address: supplier.address || '',
+    isActive: supplier.is_active !== undefined ? supplier.is_active : (supplier.isActive || true),
+    dateAdded: supplier.date_added || supplier.dateAdded || '',
+    createdAt: supplier.created_at || supplier.createdAt || ''
   }
 }
 
@@ -57,7 +60,10 @@ export const normalizeSupplier = (supplier) => {
  * Normalize array of suppliers
  */
 export const normalizeSuppliers = (suppliers) => {
-  if (!Array.isArray(suppliers)) return []
+  if (!Array.isArray(suppliers)) {
+    console.warn('normalizeSuppliers: Expected array, got:', typeof suppliers)
+    return []
+  }
   return suppliers.map(normalizeSupplier).filter(Boolean)
 }
 
@@ -69,10 +75,10 @@ export const normalizeCategory = (category) => {
   
   return {
     id: category.id,
-    categoryName: category.category_name || category.categoryName,
-    description: category.description,
-    dateAdded: category.date_added || category.dateAdded,
-    createdAt: category.created_at || category.createdAt
+    categoryName: category.category_name || category.categoryName || '',
+    description: category.description || '',
+    dateAdded: category.date_added || category.dateAdded || '',
+    createdAt: category.created_at || category.createdAt || ''
   }
 }
 
@@ -80,7 +86,10 @@ export const normalizeCategory = (category) => {
  * Normalize array of categories
  */
 export const normalizeCategories = (categories) => {
-  if (!Array.isArray(categories)) return []
+  if (!Array.isArray(categories)) {
+    console.warn('normalizeCategories: Expected array, got:', typeof categories)
+    return []
+  }
   return categories.map(normalizeCategory).filter(Boolean)
 }
 
@@ -92,10 +101,10 @@ export const normalizeLocation = (location) => {
   
   return {
     id: location.id,
-    locationName: location.location_name || location.locationName,
-    description: location.description,
-    dateAdded: location.date_added || location.dateAdded,
-    createdAt: location.created_at || location.createdAt
+    locationName: location.location_name || location.locationName || '',
+    description: location.description || '',
+    dateAdded: location.date_added || location.dateAdded || '',
+    createdAt: location.created_at || location.createdAt || ''
   }
 }
 
@@ -103,7 +112,10 @@ export const normalizeLocation = (location) => {
  * Normalize array of locations
  */
 export const normalizeLocations = (locations) => {
-  if (!Array.isArray(locations)) return []
+  if (!Array.isArray(locations)) {
+    console.warn('normalizeLocations: Expected array, got:', typeof locations)
+    return []
+  }
   return locations.map(normalizeLocation).filter(Boolean)
 }
 
@@ -115,17 +127,17 @@ export const normalizeTransaction = (transaction) => {
   
   return {
     id: transaction.id,
-    itemId: transaction.item_id || transaction.itemId,
-    itemName: transaction.item_name || transaction.itemName,
-    transactionType: transaction.transaction_type || transaction.transactionType,
-    quantity: transaction.quantity,
-    reason: transaction.reason,
-    userId: transaction.user_id || transaction.userId,
-    userName: transaction.user_name || transaction.userName,
-    userRole: transaction.user_role || transaction.userRole,
-    stockBefore: transaction.stock_before || transaction.stockBefore,
-    stockAfter: transaction.stock_after || transaction.stockAfter,
-    timestamp: transaction.timestamp
+    itemId: transaction.item_id || transaction.itemId || null,
+    itemName: transaction.item_name || transaction.itemName || '',
+    transactionType: transaction.transaction_type || transaction.transactionType || '',
+    quantity: Number(transaction.quantity) || 0,
+    reason: transaction.reason || '',
+    userId: transaction.user_id || transaction.userId || null,
+    userName: transaction.user_name || transaction.userName || '',
+    userRole: transaction.user_role || transaction.userRole || '',
+    stockBefore: Number(transaction.stock_before || transaction.stockBefore) || 0,
+    stockAfter: Number(transaction.stock_after || transaction.stockAfter) || 0,
+    timestamp: transaction.timestamp || ''
   }
 }
 
@@ -133,7 +145,10 @@ export const normalizeTransaction = (transaction) => {
  * Normalize array of transactions
  */
 export const normalizeTransactions = (transactions) => {
-  if (!Array.isArray(transactions)) return []
+  if (!Array.isArray(transactions)) {
+    console.warn('normalizeTransactions: Expected array, got:', typeof transactions)
+    return []
+  }
   return transactions.map(normalizeTransaction).filter(Boolean)
 }
 
@@ -145,13 +160,13 @@ export const normalizeActivityLog = (log) => {
   
   return {
     id: log.id,
-    itemName: log.item_name || log.itemName,
-    action: log.action,
-    userId: log.user_id || log.userId,
-    userName: log.user_name || log.userName,
-    userRole: log.user_role || log.userRole,
-    timestamp: log.timestamp,
-    details: log.details
+    itemName: log.item_name || log.itemName || '',
+    action: log.action || '',
+    userId: log.user_id || log.userId || null,
+    userName: log.user_name || log.userName || '',
+    userRole: log.user_role || log.userRole || '',
+    timestamp: log.timestamp || '',
+    details: log.details || ''
   }
 }
 
@@ -159,7 +174,10 @@ export const normalizeActivityLog = (log) => {
  * Normalize array of activity logs
  */
 export const normalizeActivityLogs = (logs) => {
-  if (!Array.isArray(logs)) return []
+  if (!Array.isArray(logs)) {
+    console.warn('normalizeActivityLogs: Expected array, got:', typeof logs)
+    return []
+  }
   return logs.map(normalizeActivityLog).filter(Boolean)
 }
 
@@ -171,17 +189,17 @@ export const normalizeAppointment = (appointment) => {
   
   return {
     id: appointment.id,
-    supplierId: appointment.supplier_id || appointment.supplierId,
-    supplierName: appointment.supplier_name || appointment.supplierName,
-    date: appointment.date,
-    time: appointment.time,
-    status: appointment.status,
-    notes: appointment.notes,
-    items: appointment.items || [],
-    scheduledBy: appointment.scheduled_by || appointment.scheduledBy,
-    scheduledByUserId: appointment.scheduled_by_user_id || appointment.scheduledByUserId,
-    scheduledDate: appointment.scheduled_date || appointment.scheduledDate,
-    lastUpdated: appointment.last_updated || appointment.lastUpdated
+    supplierId: appointment.supplier_id || appointment.supplierId || null,
+    supplierName: appointment.supplier_name || appointment.supplierName || '',
+    date: appointment.date || '',
+    time: appointment.time || '',
+    status: appointment.status || 'pending',
+    notes: appointment.notes || '',
+    items: Array.isArray(appointment.items) ? appointment.items : [],
+    scheduledBy: appointment.scheduled_by || appointment.scheduledBy || '',
+    scheduledByUserId: appointment.scheduled_by_user_id || appointment.scheduledByUserId || null,
+    scheduledDate: appointment.scheduled_date || appointment.scheduledDate || '',
+    lastUpdated: appointment.last_updated || appointment.lastUpdated || ''
   }
 }
 
@@ -189,7 +207,10 @@ export const normalizeAppointment = (appointment) => {
  * Normalize array of appointments
  */
 export const normalizeAppointments = (appointments) => {
-  if (!Array.isArray(appointments)) return []
+  if (!Array.isArray(appointments)) {
+    console.warn('normalizeAppointments: Expected array, got:', typeof appointments)
+    return []
+  }
   return appointments.map(normalizeAppointment).filter(Boolean)
 }
 
@@ -201,16 +222,16 @@ export const normalizeDamagedItem = (item) => {
   
   return {
     id: item.id,
-    itemId: item.item_id || item.itemId,
-    itemName: item.item_name || item.itemName,
-    quantity: item.quantity,
-    location: item.location_name || item.location,
-    reason: item.reason,
-    status: item.status,
-    notes: item.notes,
-    price: item.price,
-    dateDamaged: item.date_damaged || item.dateDamaged,
-    lastUpdated: item.last_updated || item.lastUpdated
+    itemId: item.item_id || item.itemId || null,
+    itemName: item.item_name || item.itemName || '',
+    quantity: Number(item.quantity) || 0,
+    location: item.location_name || item.location || '',
+    reason: item.reason || '',
+    status: item.status || 'Standby',
+    notes: item.notes || '',
+    price: Number(item.price) || 0,
+    dateDamaged: item.date_damaged || item.dateDamaged || '',
+    lastUpdated: item.last_updated || item.lastUpdated || ''
   }
 }
 
@@ -218,7 +239,10 @@ export const normalizeDamagedItem = (item) => {
  * Normalize array of damaged items
  */
 export const normalizeDamagedItems = (items) => {
-  if (!Array.isArray(items)) return []
+  if (!Array.isArray(items)) {
+    console.warn('normalizeDamagedItems: Expected array, got:', typeof items)
+    return []
+  }
   return items.map(normalizeDamagedItem).filter(Boolean)
 }
 
@@ -230,13 +254,13 @@ export const normalizeUser = (user) => {
   
   return {
     id: user.id,
-    username: user.username,
-    email: user.email,
-    name: user.name,
-    role: user.role,
-    status: user.status,
-    signupDate: user.signup_date || user.signupDate,
-    createdAt: user.created_at || user.createdAt
+    username: user.username || '',
+    email: user.email || '',
+    name: user.name || '',
+    role: user.role || 'Staff',
+    status: user.status || 'pending',
+    signupDate: user.signup_date || user.signupDate || '',
+    createdAt: user.created_at || user.createdAt || ''
   }
 }
 
@@ -244,11 +268,14 @@ export const normalizeUser = (user) => {
  * Normalize array of users
  */
 export const normalizeUsers = (users) => {
-  if (!Array.isArray(users)) return []
+  if (!Array.isArray(users)) {
+    console.warn('normalizeUsers: Expected array, got:', typeof users)
+    return []
+  }
   return users.map(normalizeUser).filter(Boolean)
 }
 
-// Export all normalizers
+// ✅ Default export with all normalizers
 export default {
   normalizeInventoryItem,
   normalizeInventoryItems,

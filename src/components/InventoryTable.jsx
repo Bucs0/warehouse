@@ -1,4 +1,4 @@
-// 🐛 MINIMAL DEBUG VERSION - InventoryTable.jsx
+// ✅ FIXED VERSION - InventoryTable.jsx with proper dataMapper import
 
 import { useState, useMemo, useEffect } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card'
@@ -9,16 +9,7 @@ import { Input } from './ui/input'
 import AddItemDialog from './AddItemDialog'
 import EditItemDialog from './EditItemDialog'
 import LocationManagementDialog from './LocationManagementDialog'
-
-// Import with error handling
-let normalizeInventoryItems
-try {
-  normalizeInventoryItems = require('../lib/dataMapper').normalizeInventoryItems
-  console.log('✅ Normalizer imported')
-} catch (e) {
-  console.error('❌ Import failed:', e)
-  normalizeInventoryItems = (items) => items || []
-}
+import { normalizeInventoryItems } from '../lib/dataMapper'
 
 export default function InventoryTable({ 
   user, 
@@ -39,85 +30,115 @@ export default function InventoryTable({
   const [filterStatus, setFilterStatus] = useState('all')
   const [isLocationDialogOpen, setIsLocationDialogOpen] = useState(false)
 
-  // Debug logging
+  // Enhanced debug logging
   useEffect(() => {
-    console.group('🔍 InventoryTable Debug')
-    console.log('inventoryData:', inventoryData)
-    console.log('Type:', Array.isArray(inventoryData) ? 'Array' : typeof inventoryData)
+    console.group('🔍 InventoryTable Debug Info')
+    console.log('Raw inventoryData:', inventoryData)
+    console.log('Is Array?', Array.isArray(inventoryData))
     console.log('Length:', inventoryData?.length)
+    console.log('First Item:', inventoryData?.[0])
     console.log('User:', user)
-    console.log('Categories:', categories?.length)
-    console.log('Locations:', locations?.length)
+    console.log('Categories:', categories)
+    console.log('Locations:', locations)
+    console.log('Suppliers:', suppliers)
     console.groupEnd()
-  }, [inventoryData, user, categories, locations])
+  }, [inventoryData, user, categories, locations, suppliers])
 
-  // Normalize with logging
+  // ✅ FIXED: Proper normalization using dataMapper
   const normalizedInventory = useMemo(() => {
-    console.log('🔄 Normalizing...', inventoryData?.length, 'items')
+    console.log('🔄 Starting normalization...')
     
-    if (!inventoryData || !Array.isArray(inventoryData)) {
-      console.warn('⚠️ Invalid data:', inventoryData)
+    if (!inventoryData) {
+      console.warn('⚠️ No inventoryData provided')
+      return []
+    }
+    
+    if (!Array.isArray(inventoryData)) {
+      console.error('❌ inventoryData is not an array:', typeof inventoryData)
       return []
     }
     
     try {
-      const result = normalizeInventoryItems(inventoryData)
-      console.log('✅ Normalized:', result?.length, 'items')
-      return result || []
+      const normalized = normalizeInventoryItems(inventoryData)
+      console.log('✅ Normalized:', normalized.length, 'items')
+      console.log('First normalized item:', normalized[0])
+      return normalized
     } catch (error) {
       console.error('❌ Normalization error:', error)
-      return inventoryData
+      // Fallback: return items as-is if normalization fails
+      return inventoryData.map(item => ({
+        id: item.id,
+        itemName: item.item_name || item.itemName || 'Unknown',
+        category: item.category || 'N/A',
+        quantity: item.quantity || 0,
+        location: item.location || 'N/A',
+        reorderLevel: item.reorder_level || item.reorderLevel || 0,
+        price: item.price || 0,
+        supplier: item.supplier || '',
+        supplierId: item.supplier_id || item.supplierId,
+        damagedStatus: item.damaged_status || item.damagedStatus || 'Good'
+      }))
     }
   }, [inventoryData])
 
-  const filteredItems = normalizedInventory.filter(item => {
-    if (!item) return false
-    
-    try {
-      const itemName = item.itemName || item.item_name || ''
-      const category = item.category || item.category_name || ''
-      const location = item.location || item.location_name || ''
+  // ✅ FIXED: Better filtering with null checks
+  const filteredItems = useMemo(() => {
+    return normalizedInventory.filter(item => {
+      if (!item) return false
       
-      const matchesSearch = itemName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           location.toLowerCase().includes(searchTerm.toLowerCase())
-      
-      let matchesStatus = true
-      if (filterStatus === 'low-stock') {
-        const qty = item.quantity || 0
-        const reorder = item.reorderLevel || item.reorder_level || 0
-        matchesStatus = qty <= reorder
+      try {
+        const itemName = (item.itemName || '').toLowerCase()
+        const category = (item.category || '').toLowerCase()
+        const location = (item.location || '').toLowerCase()
+        const search = searchTerm.toLowerCase()
+        
+        const matchesSearch = itemName.includes(search) ||
+                             category.includes(search) ||
+                             location.includes(search)
+        
+        let matchesStatus = true
+        if (filterStatus === 'low-stock') {
+          const qty = item.quantity || 0
+          const reorder = item.reorderLevel || 0
+          matchesStatus = qty <= reorder
+        }
+
+        return matchesSearch && matchesStatus
+      } catch (error) {
+        console.error('❌ Filter error:', error, item)
+        return false
       }
+    })
+  }, [normalizedInventory, searchTerm, filterStatus])
 
-      return matchesSearch && matchesStatus
-    } catch (error) {
-      console.error('❌ Filter error:', error, item)
-      return false
-    }
-  })
+  // Count low stock items
+  const lowStockCount = normalizedInventory.filter(item => 
+    (item.quantity || 0) <= (item.reorderLevel || 0)
+  ).length
 
-  console.log('📊 Rendering:', filteredItems.length, 'items')
+  console.log('📊 Final filtered items:', filteredItems.length)
 
   const handleDelete = (item) => {
-    const name = item.itemName || item.item_name || 'this item'
+    const name = item.itemName || 'this item'
     if (window.confirm(`Are you sure you want to delete "${name}"?`)) {
       onDeleteItem(item.id)
     }
   }
 
-  return (
-    <div className="space-y-4">
-      {/* Debug Info Box */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm">
-        <div className="font-bold mb-2">🐛 Debug Information:</div>
-        <div className="grid grid-cols-2 gap-2">
-          <div>Raw Data: {inventoryData?.length || 0}</div>
-          <div>Normalized: {normalizedInventory.length}</div>
-          <div>Filtered: {filteredItems.length}</div>
-          <div>User: {user?.name || 'Unknown'}</div>
+  // ✅ FIXED: Show loading state
+  if (!inventoryData) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-lg font-medium">Loading inventory...</p>
         </div>
       </div>
+    )
+  }
 
+  return (
+    <div className="space-y-4">
       <Card>
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -166,12 +187,9 @@ export default function InventoryTable({
               <Button 
                 variant={filterStatus === 'low-stock' ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => {
-                  console.log('Low stock filter clicked')
-                  setFilterStatus('low-stock')
-                }}
+                onClick={() => setFilterStatus('low-stock')}
               >
-                Low Stock
+                Low Stock {lowStockCount > 0 && `(${lowStockCount})`}
               </Button>
             </div>
           </div>
@@ -194,97 +212,97 @@ export default function InventoryTable({
               <TableBody>
                 {filteredItems.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8">
+                    <TableCell colSpan={7} className="text-center py-12">
                       <div className="space-y-4">
-                        <div className="text-muted-foreground">
-                          {normalizedInventory.length === 0 ? (
-                            <div>
-                              <div className="text-lg font-semibold mb-2">No inventory data</div>
-                              <div className="text-sm">Check console for debug info (F12)</div>
+                        {normalizedInventory.length === 0 ? (
+                          <>
+                            <div className="text-6xl mb-4">📦</div>
+                            <div className="text-lg font-semibold">No inventory items found</div>
+                            <div className="text-sm text-muted-foreground max-w-md mx-auto">
+                              {inventoryData?.length === 0 ? (
+                                <>
+                                  <p className="mb-3">Your database appears to be empty.</p>
+                                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left">
+                                    <p className="font-semibold mb-2">Quick Fix:</p>
+                                    <ol className="space-y-1 text-sm">
+                                      <li>1. Open terminal in backend folder</li>
+                                      <li>2. Run: <code className="bg-blue-100 px-2 py-1 rounded">node setup.js</code></li>
+                                      <li>3. Refresh this page</li>
+                                    </ol>
+                                  </div>
+                                </>
+                              ) : (
+                                <p>Add your first item using the "Add Item" button above</p>
+                              )}
                             </div>
-                          ) : (
-                            'No items match your search/filter'
-                          )}
-                        </div>
-                        
-                        {normalizedInventory.length === 0 && (
-                          <div className="text-left max-w-md mx-auto bg-yellow-50 p-4 rounded border">
-                            <div className="font-semibold mb-2">Troubleshooting:</div>
-                            <ul className="text-sm space-y-1">
-                              <li>• Check browser console (F12)</li>
-                              <li>• Verify backend is running</li>
-                              <li>• Check database has data</li>
-                            </ul>
-                          </div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="text-4xl mb-4">🔍</div>
+                            <div className="text-lg font-semibold">No items match your search</div>
+                            <div className="text-sm text-muted-foreground">
+                              Try adjusting your filters or search term
+                            </div>
+                          </>
                         )}
                       </div>
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredItems.map((item) => {
-                    const itemName = item.itemName || item.item_name || 'Unknown'
-                    const category = item.category || item.category_name || 'N/A'
-                    const location = item.location || item.location_name || 'N/A'
-                    const quantity = item.quantity || 0
-                    const reorderLevel = item.reorderLevel || item.reorder_level || 0
-                    const status = item.damagedStatus || item.damaged_status || 'Good'
-                    const price = item.price || 0
-                    
-                    return (
-                      <TableRow key={item.id}>
-                        <TableCell className="font-medium">{itemName}</TableCell>
-                        
-                        <TableCell>
-                          <Badge variant="outline">{category}</Badge>
-                        </TableCell>
-                        
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <span className={quantity <= reorderLevel ? 'text-orange-600 font-semibold' : ''}>
-                              {quantity}
-                            </span>
-                            {quantity <= reorderLevel && (
-                              <Badge variant="warning" className="text-xs">Low</Badge>
-                            )}
-                          </div>
-                        </TableCell>
-                        
-                        <TableCell>{location}</TableCell>
-                        
-                        <TableCell>
-                          <Badge variant={status === 'Good' ? 'success' : 'destructive'}>
-                            {status}
-                          </Badge>
-                        </TableCell>
-                        
-                        <TableCell>
-                          ₱{price.toLocaleString('en-PH', { minimumFractionDigits: 2 })}
-                        </TableCell>
-                        
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
+                  filteredItems.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell className="font-medium">{item.itemName}</TableCell>
+                      
+                      <TableCell>
+                        <Badge variant="outline">{item.category}</Badge>
+                      </TableCell>
+                      
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <span className={item.quantity <= item.reorderLevel ? 'text-orange-600 font-semibold' : ''}>
+                            {item.quantity}
+                          </span>
+                          {item.quantity <= item.reorderLevel && (
+                            <Badge variant="warning" className="text-xs">Low</Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      
+                      <TableCell>{item.location}</TableCell>
+                      
+                      <TableCell>
+                        <Badge variant={item.damagedStatus === 'Good' ? 'success' : 'destructive'}>
+                          {item.damagedStatus}
+                        </Badge>
+                      </TableCell>
+                      
+                      <TableCell>
+                        ₱{item.price.toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                      </TableCell>
+                      
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setEditingItem(item)}
+                          >
+                            Edit
+                          </Button>
+                          
+                          {user?.role === 'Admin' && (
                             <Button
                               size="sm"
-                              variant="outline"
-                              onClick={() => setEditingItem(item)}
+                              variant="destructive"
+                              onClick={() => handleDelete(item)}
                             >
-                              Edit
+                              Delete
                             </Button>
-                            
-                            {user?.role === 'Admin' && (
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => handleDelete(item)}
-                              >
-                                Delete
-                              </Button>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
                 )}
               </TableBody>
             </Table>
