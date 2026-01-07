@@ -1,0 +1,304 @@
+// Dialog for managing warehouse locations (add, edit, delete)
+
+import { useState, useEffect } from 'react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog'
+import { Input } from './ui/input'
+import { Label } from './ui/label'
+import { Button } from './ui/button'
+import { Badge } from './ui/badge'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from './ui/table'
+
+export default function LocationManagementDialog({ 
+  open, 
+  onOpenChange, 
+  locations = [], 
+  onAddLocation, 
+  onEditLocation, 
+  onDeleteLocation,
+  inventoryData = []
+}) {
+  const [isAddMode, setIsAddMode] = useState(false)
+  const [editingLocation, setEditingLocation] = useState(null)
+  const [formData, setFormData] = useState({
+    locationName: '',
+    description: ''
+  })
+  const [searchTerm, setSearchTerm] = useState('')
+
+  useEffect(() => {
+    if (!open) {
+      setIsAddMode(false)
+      setEditingLocation(null)
+      setFormData({ locationName: '', description: '' })
+    }
+  }, [open])
+
+  const handleChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+  }
+
+  const handleAdd = () => {
+    if (!formData.locationName.trim()) {
+      alert('Please enter a location name')
+      return
+    }
+
+    const duplicate = locations.find(
+      loc => loc.locationName.toLowerCase() === formData.locationName.toLowerCase()
+    )
+    if (duplicate) {
+      alert(`Location "${formData.locationName}" already exists!`)
+      return
+    }
+
+    onAddLocation({
+      id: Date.now(),
+      locationName: formData.locationName.trim(),
+      description: formData.description.trim(),
+      dateAdded: new Date().toLocaleDateString('en-PH')
+    })
+
+    setFormData({ locationName: '', description: '' })
+    setIsAddMode(false)
+  }
+
+  const handleEdit = () => {
+    if (!formData.locationName.trim()) {
+      alert('Please enter a location name')
+      return
+    }
+
+    const duplicate = locations.find(
+      loc => loc.id !== editingLocation.id && 
+      loc.locationName.toLowerCase() === formData.locationName.toLowerCase()
+    )
+    if (duplicate) {
+      alert(`Location "${formData.locationName}" already exists!`)
+      return
+    }
+
+    onEditLocation({
+      ...editingLocation,
+      locationName: formData.locationName.trim(),
+      description: formData.description.trim()
+    })
+
+    setFormData({ locationName: '', description: '' })
+    setEditingLocation(null)
+  }
+
+  const startEdit = (location) => {
+    setEditingLocation(location)
+    setFormData({
+      locationName: location.locationName,
+      description: location.description || ''
+    })
+    setIsAddMode(false)
+  }
+
+  const handleDelete = (location) => {
+    const itemCount = getLocationItemCount(location.locationName)
+    if (itemCount > 0) {
+      alert(`Cannot delete location "${location.locationName}" because it has ${itemCount} item(s). Please move or remove items first.`)
+      return
+    }
+    
+    if (window.confirm(`Are you sure you want to delete location "${location.locationName}"?`)) {
+      onDeleteLocation(location.id)
+    }
+  }
+
+  const getLocationItemCount = (locationName) => {
+    return inventoryData.filter(item => item.location === locationName).length
+  }
+
+  const filteredLocations = locations.filter(location =>
+    location.locationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (location.description && location.description.toLowerCase().includes(searchTerm.toLowerCase()))
+  )
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Warehouse Location Management</DialogTitle>
+          <p className="text-sm text-muted-foreground mt-2">
+            Manage warehouse locations for inventory organization
+          </p>
+        </DialogHeader>
+
+        <div className="space-y-6">
+          {(isAddMode || editingLocation) && (
+            <div className="border rounded-lg p-4 bg-blue-50">
+              <h4 className="font-semibold mb-4">
+                {editingLocation ? 'Edit Location' : 'Add New Location'}
+              </h4>
+              
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="locationName">
+                    Location Name <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="locationName"
+                    placeholder="e.g., Warehouse A, Shelf 1"
+                    value={formData.locationName}
+                    onChange={(e) => handleChange('locationName', e.target.value)}
+                    autoFocus
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Input
+                    id="description"
+                    placeholder="e.g., Main storage area, first floor"
+                    value={formData.description}
+                    onChange={(e) => handleChange('description', e.target.value)}
+                  />
+                </div>
+
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={editingLocation ? handleEdit : handleAdd}
+                    className="flex-1"
+                  >
+                    {editingLocation ? 'Save Changes' : 'Add Location'}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setIsAddMode(false)
+                      setEditingLocation(null)
+                      setFormData({ locationName: '', description: '' })
+                    }}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!isAddMode && !editingLocation && (
+            <Button 
+              onClick={() => setIsAddMode(true)}
+              className="w-full"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Add New Location
+            </Button>
+          )}
+
+          <div className="grid grid-cols-3 gap-4">
+            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-sm text-blue-600 font-medium">Total Locations</p>
+              <p className="text-2xl font-bold text-blue-900 mt-1">{locations.length}</p>
+            </div>
+            <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+              <p className="text-sm text-green-600 font-medium">In Use</p>
+              <p className="text-2xl font-bold text-green-900 mt-1">
+                {locations.filter(loc => getLocationItemCount(loc.locationName) > 0).length}
+              </p>
+            </div>
+            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <p className="text-sm text-gray-600 font-medium">Empty</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">
+                {locations.filter(loc => getLocationItemCount(loc.locationName) === 0).length}
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Search Locations</Label>
+            <Input
+              type="search"
+              placeholder="Search by name or description..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          <div className="border rounded-lg">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Location Name</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Items</TableHead>
+                  <TableHead>Date Added</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredLocations.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                      {searchTerm
+                        ? 'No locations found matching search'
+                        : 'No locations yet. Add your first location to get started.'
+                      }
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredLocations.map((location) => {
+                    const itemCount = getLocationItemCount(location.locationName)
+                    return (
+                      <TableRow key={location.id}>
+                        <TableCell className="font-medium">{location.locationName}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {location.description || 'No description'}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={itemCount > 0 ? 'default' : 'outline'}>
+                            {itemCount} {itemCount === 1 ? 'item' : 'items'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {location.dateAdded}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => startEdit(location)}
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleDelete(location)}
+                              disabled={itemCount > 0}
+                              title={itemCount > 0 ? 'Cannot delete location with items' : 'Delete location'}
+                            >
+                              Delete
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {filteredLocations.length > 0 && (
+            <p className="text-sm text-muted-foreground">
+              Showing {filteredLocations.length} of {locations.length} locations
+            </p>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button onClick={() => onOpenChange(false)}>Close</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
