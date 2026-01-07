@@ -1082,15 +1082,31 @@ app.post('/api/activity-logs', async (req, res) => {
   try {
     const { itemName, action, userId, details } = req.body;
     
-    await pool.query(
+    console.log('📥 Backend: Adding activity log:', {
+      itemName,
+      action,
+      userId,
+      details
+    });
+    
+    const [result] = await pool.query(
       'INSERT INTO activity_logs (item_name, action, user_id, details) VALUES (?, ?, ?, ?)',
       [itemName, action, userId, details]
     );
     
-    res.json({ message: 'Activity logged successfully' });
+    console.log('✅ Backend: Activity log saved with ID:', result.insertId);
+    
+    res.json({ 
+      message: 'Activity logged successfully',
+      id: result.insertId
+    });
   } catch (error) {
-    console.error('Error adding activity log:', error);
-    res.status(500).json({ error: 'Server error' });
+    console.error('❌ Backend: Error adding activity log:', error);
+    console.error('❌ SQL Error:', error.sqlMessage);
+    res.status(500).json({ 
+      error: 'Server error',
+      details: error.message 
+    });
   }
 });
 

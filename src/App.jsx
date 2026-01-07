@@ -110,8 +110,22 @@ export default function App() {
       try {
         const pendingAlerts = await lowStockAlertsAPI.getPendingAlerts()
         
+        console.log('📦 Pending low stock alerts:', pendingAlerts)
+        
         for (const item of pendingAlerts) {
-          const result = await sendLowStockAlert(item, ADMIN_EMAIL)
+          // ✅ Normalize the item data for email service
+          const normalizedItem = {
+            itemName: item.item_name || item.itemName || 'Unknown Item',
+            quantity: item.quantity || 0,
+            reorderLevel: item.reorder_level || item.reorderLevel || 0,
+            location: item.location || item.location_name || 'Unknown Location',
+            category: item.category || item.category_name || 'Uncategorized',
+            supplier: item.supplier || item.supplier_name || 'No supplier assigned'
+          }
+          
+          console.log('📧 Sending email for:', normalizedItem)
+          
+          const result = await sendLowStockAlert(normalizedItem, ADMIN_EMAIL)
           
           if (result.success) {
             console.log(`✅ Low stock alert sent for: ${item.item_name}`)
@@ -130,6 +144,8 @@ export default function App() {
             // Refresh activity logs
             const logs = await activityLogsAPI.getAll()
             setActivityLogs(logs)
+          } else {
+            console.error('❌ Failed to send alert:', result.error)
           }
         }
       } catch (error) {
@@ -158,21 +174,44 @@ export default function App() {
 
   const handleNavigate = (page) => {
     setCurrentPage(page)
+    
+    // ✅ Reload activity logs when navigating to dashboard to show latest activities
+    if (page === 'dashboard') {
+      const reloadLogs = async () => {
+        try {
+          const logs = await activityLogsAPI.getAll()
+          setActivityLogs(logs)
+          console.log('✅ Activity logs refreshed:', logs.length, 'logs')
+        } catch (error) {
+          console.error('❌ Error reloading activity logs:', error)
+        }
+      }
+      reloadLogs()
+    }
   }
 
   // Helper function to add activity log
   const addActivityLog = async (itemName, action, details) => {
     try {
-      await activityLogsAPI.add({
+      console.log('📝 Adding activity log:', { itemName, action, details, userId: currentUser.id })
+      
+      const result = await activityLogsAPI.add({
         itemName,
         action,
         userId: currentUser.id,
         details
       })
+      
+      console.log('✅ Activity log added:', result)
+      
       const logs = await activityLogsAPI.getAll()
+      console.log('📊 Refreshed activity logs:', logs.length, 'total logs')
+      console.log('🔹 Latest log:', logs[logs.length - 1])
+      
       setActivityLogs(logs)
     } catch (error) {
-      console.error('Error adding activity log:', error)
+      console.error('❌ Error adding activity log:', error)
+      console.error('❌ Error details:', error.message, error.response)
     }
   }
 

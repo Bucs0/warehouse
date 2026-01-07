@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card'
 import { Badge } from './ui/badge'
 import { Button } from './ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
 import { authAPI } from '../lib/api'
+import { normalizeActivityLogs } from '../lib/dataMapper'
 
 export default function Dashboard({ user, inventoryData, activityLogs, onNavigate, onLogActivity }) {
   const [isApprovalDialogOpen, setIsApprovalDialogOpen] = useState(false)
@@ -90,7 +91,23 @@ export default function Dashboard({ user, inventoryData, activityLogs, onNavigat
   const damagedItems = inventoryData.filter(item => item.damagedStatus === 'Damaged' || item.damaged_status === 'Damaged').length
   const totalValue = inventoryData.reduce((sum, item) => sum + (item.quantity * (item.price || 0)), 0)
 
-  const recentActivities = activityLogs.slice(-5).reverse()
+  // ✅ Normalize activity logs to handle both snake_case and camelCase
+  const normalizedLogs = useMemo(() => 
+    normalizeActivityLogs(activityLogs),
+    [activityLogs]
+  )
+
+  const recentActivities = normalizedLogs.slice(-10).reverse()
+
+  useEffect(() => {
+    console.log('🔄 Dashboard received activity logs update:', {
+      raw: activityLogs.length,
+      normalized: normalizedLogs.length,
+      showing: recentActivities.length,
+      latest: recentActivities[0],
+      rawLatest: activityLogs[activityLogs.length - 1]
+    })
+  }, [activityLogs, normalizedLogs])
 
   return (
     <div className="space-y-6">
@@ -246,9 +263,9 @@ export default function Dashboard({ user, inventoryData, activityLogs, onNavigat
                   </div>
 
                   <div className="flex-1">
-                    <p className="font-medium">{log.itemName || log.item_name}</p>
+                    <p className="font-medium">{log.itemName}</p>
                     <p className="text-sm text-muted-foreground">
-                      {log.action} by {log.userName || log.user_name} • {log.timestamp}
+                      {log.action} by {log.userName} • {log.timestamp}
                     </p>
                     {log.details && (
                       <p className="text-sm text-muted-foreground mt-1">{log.details}</p>
