@@ -1,8 +1,6 @@
+// ✅ UPDATED: Added data normalization for database compatibility
 
-// Separate page for managing damaged items
-// Options: Mark as Thrown or In Standby
-
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from './ui/table'
 import { Badge } from './ui/badge'
@@ -11,6 +9,7 @@ import { Input } from './ui/input'
 import { Select } from './ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog'
 import { Label } from './ui/label'
+import { normalizeDamagedItems } from '../lib/dataMapper'
 
 export default function DamagedItemsPage({ user, damagedItems, onUpdateDamagedItem, onRemoveDamagedItem }) {
   const [searchTerm, setSearchTerm] = useState('')
@@ -18,8 +17,14 @@ export default function DamagedItemsPage({ user, damagedItems, onUpdateDamagedIt
   const [selectedItem, setSelectedItem] = useState(null)
   const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false)
 
+  // ✅ Normalize damaged items data
+  const normalizedItems = useMemo(() => 
+    normalizeDamagedItems(damagedItems), 
+    [damagedItems]
+  )
+
   // Filter damaged items
-  const filteredItems = damagedItems.filter(item => {
+  const filteredItems = normalizedItems.filter(item => {
     const matchesSearch = 
       item.itemName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -36,9 +41,9 @@ export default function DamagedItemsPage({ user, damagedItems, onUpdateDamagedIt
   })
 
   // Calculate statistics
-  const standbyCount = damagedItems.filter(i => i.status === 'Standby').length
-  const thrownCount = damagedItems.filter(i => i.status === 'Thrown').length
-  const totalValue = damagedItems.reduce((sum, item) => sum + (item.quantity * item.price), 0)
+  const standbyCount = normalizedItems.filter(i => i.status === 'Standby').length
+  const thrownCount = normalizedItems.filter(i => i.status === 'Thrown').length
+  const totalValue = normalizedItems.reduce((sum, item) => sum + (item.quantity * item.price), 0)
 
   return (
     <div className="space-y-6">
@@ -57,7 +62,7 @@ export default function DamagedItemsPage({ user, damagedItems, onUpdateDamagedIt
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Damaged</p>
-                <h3 className="text-3xl font-bold mt-2">{damagedItems.length}</h3>
+                <h3 className="text-3xl font-bold mt-2">{normalizedItems.length}</h3>
               </div>
               <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
                 <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -143,7 +148,7 @@ export default function DamagedItemsPage({ user, damagedItems, onUpdateDamagedIt
                 size="sm"
                 onClick={() => setFilterStatus('all')}
               >
-                All ({damagedItems.length})
+                All ({normalizedItems.length})
               </Button>
               <Button 
                 variant={filterStatus === 'standby' ? 'default' : 'outline'}
@@ -242,7 +247,7 @@ export default function DamagedItemsPage({ user, damagedItems, onUpdateDamagedIt
 
           {filteredItems.length > 0 && (
             <p className="text-sm text-muted-foreground mt-4">
-              Showing {filteredItems.length} of {damagedItems.length} damaged items
+              Showing {filteredItems.length} of {normalizedItems.length} damaged items
             </p>
           )}
         </CardContent>

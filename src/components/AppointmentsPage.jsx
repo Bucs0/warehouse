@@ -1,6 +1,6 @@
+// ✅ UPDATED: Added data normalization for email service compatibility
 
-
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from './ui/table'
 import { Badge } from './ui/badge'
@@ -9,8 +9,9 @@ import { Input } from './ui/input'
 import ScheduleAppointmentDialog from './ScheduleAppointmentDialog'
 import EditAppointmentDialog from './EditAppointmentDialog'
 import ViewAppointmentDialog from './ViewAppointmentDialog'
+import { normalizeSuppliers, normalizeAppointments } from '../lib/dataMapper'
 
-//Import the new cancel email function
+// Import email functions
 import { sendAppointmentEmail, sendAppointmentCancelEmail } from '../lib/emailService'
 
 export default function AppointmentsPage({ 
@@ -30,12 +31,23 @@ export default function AppointmentsPage({
   const [editingAppointment, setEditingAppointment] = useState(null)
   const [viewingAppointment, setViewingAppointment] = useState(null)
 
+  // ✅ Normalize data
+  const normalizedSuppliers = useMemo(() => 
+    normalizeSuppliers(suppliers), 
+    [suppliers]
+  )
+
+  const normalizedAppointments = useMemo(() => 
+    normalizeAppointments(appointments), 
+    [appointments]
+  )
+
   // Filter appointments
-  const filteredAppointments = appointments.filter(appointment => {
+  const filteredAppointments = normalizedAppointments.filter(appointment => {
     const matchesSearch = 
       appointment.supplierName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       appointment.items.some(item => item.itemName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      appointment.notes.toLowerCase().includes(searchTerm.toLowerCase())
+      (appointment.notes && appointment.notes.toLowerCase().includes(searchTerm.toLowerCase()))
     
     const matchesStatus = filterStatus === 'all' || appointment.status === filterStatus
 
@@ -43,25 +55,26 @@ export default function AppointmentsPage({
   }).sort((a, b) => new Date(a.date) - new Date(b.date))
 
   // Calculate statistics
-  const pendingCount = appointments.filter(a => a.status === 'pending').length
-  const confirmedCount = appointments.filter(a => a.status === 'confirmed').length
-  const completedCount = appointments.filter(a => a.status === 'completed').length
-  const cancelledCount = appointments.filter(a => a.status === 'cancelled').length
+  const pendingCount = normalizedAppointments.filter(a => a.status === 'pending').length
+  const confirmedCount = normalizedAppointments.filter(a => a.status === 'confirmed').length
+  const completedCount = normalizedAppointments.filter(a => a.status === 'completed').length
+  const cancelledCount = normalizedAppointments.filter(a => a.status === 'cancelled').length
 
   const today = new Date()
   const nextWeek = new Date(today)
   nextWeek.setDate(today.getDate() + 7)
   
-  const upcomingAppointments = appointments.filter(a => {
+  const upcomingAppointments = normalizedAppointments.filter(a => {
     const appointmentDate = new Date(a.date)
     return appointmentDate >= today && appointmentDate <= nextWeek && a.status !== 'completed' && a.status !== 'cancelled'
   }).length
 
-  // schedule handler with email notification
+  // ✅ Schedule handler with email notification and normalized supplier data
   const handleScheduleWithEmail = async (appointment) => {
     onScheduleAppointment(appointment)
 
-    const supplier = suppliers.find(s => s.id === appointment.supplierId)
+    // Find and normalize supplier
+    const supplier = normalizedSuppliers.find(s => s.id === appointment.supplierId)
     
     if (supplier && supplier.contactEmail) {
       console.log('📧 Sending appointment confirmation email to:', supplier.contactEmail)
@@ -81,16 +94,16 @@ export default function AppointmentsPage({
     }
   }
 
-  // edit handler with email notification
+  // ✅ Edit handler with email notification and normalized supplier data
   const handleEditWithEmail = async (updatedAppointment) => {
     onEditAppointment(updatedAppointment)
 
-    const originalAppointment = appointments.find(a => a.id === updatedAppointment.id)
+    const originalAppointment = normalizedAppointments.find(a => a.id === updatedAppointment.id)
     const statusChanged = originalAppointment.status !== updatedAppointment.status
     const isNowConfirmed = updatedAppointment.status === 'confirmed'
 
     if (statusChanged && isNowConfirmed) {
-      const supplier = suppliers.find(s => s.id === updatedAppointment.supplierId)
+      const supplier = normalizedSuppliers.find(s => s.id === updatedAppointment.supplierId)
       
       if (supplier && supplier.contactEmail) {
         console.log('📧 Sending confirmation email for updated appointment to:', supplier.contactEmail)
@@ -114,29 +127,25 @@ export default function AppointmentsPage({
     }
   }
 
-  // Now sends cancellation email
+  // ✅ Cancel handler with normalized supplier data
   const handleCancel = async (appointment) => {
-    // Prompt for cancellation reason
     const cancelReason = prompt(
       `Please provide a reason for cancelling the appointment with ${appointment.supplierName}:`,
       'Schedule conflict'
     )
     
-    // If user clicks cancel in prompt, abort
     if (cancelReason === null) {
       return
     }
 
-    // Confirm cancellation
     if (!window.confirm(`Cancel appointment with ${appointment.supplierName}? This action cannot be undone.`)) {
       return
     }
 
-    // Cancel the appointment
     onCancelAppointment(appointment.id)
 
-    // Try to send cancellation email to supplier
-    const supplier = suppliers.find(s => s.id === appointment.supplierId)
+    // Find and normalize supplier
+    const supplier = normalizedSuppliers.find(s => s.id === appointment.supplierId)
     
     if (supplier && supplier.contactEmail) {
       console.log('📧 Sending cancellation email to:', supplier.contactEmail)
@@ -326,7 +335,7 @@ export default function AppointmentsPage({
                 size="sm"
                 onClick={() => setFilterStatus('all')}
               >
-                All ({appointments.length})
+                All ({normalizedAppointments.length})
               </Button>
               <Button 
                 variant={filterStatus === 'pending' ? 'default' : 'outline'}
@@ -528,7 +537,7 @@ export default function AppointmentsPage({
 
           {filteredAppointments.length > 0 && (
             <p className="text-sm text-muted-foreground mt-4">
-              Showing {filteredAppointments.length} of {appointments.length} appointments
+              Showing {filteredAppointments.length} of {normalizedAppointments.length} appointments
             </p>
           )}
         </CardContent>
@@ -538,7 +547,7 @@ export default function AppointmentsPage({
       <ScheduleAppointmentDialog
         open={isScheduleDialogOpen}
         onOpenChange={setIsScheduleDialogOpen}
-        suppliers={suppliers}
+        suppliers={normalizedSuppliers}
         inventoryData={inventoryData}
         user={user}
         onSchedule={handleScheduleWithEmail}
@@ -549,7 +558,7 @@ export default function AppointmentsPage({
           open={!!editingAppointment}
           onOpenChange={(open) => !open && setEditingAppointment(null)}
           appointment={editingAppointment}
-          suppliers={suppliers}
+          suppliers={normalizedSuppliers}
           inventoryData={inventoryData}
           onEdit={handleEditWithEmail}
         />

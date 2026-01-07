@@ -1,5 +1,6 @@
+// ✅ UPDATED: Added data normalization for database compatibility
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from './ui/table'
 import { Badge } from './ui/badge'
@@ -7,7 +8,8 @@ import { Button } from './ui/button'
 import { Input } from './ui/input'
 import AddItemDialog from './AddItemDialog'
 import EditItemDialog from './EditItemDialog'
-import LocationManagementDialog from './LocationManagementDialog'  
+import LocationManagementDialog from './LocationManagementDialog'
+import { normalizeInventoryItems } from '../lib/dataMapper'
 
 export default function InventoryTable({ 
   user, 
@@ -26,9 +28,15 @@ export default function InventoryTable({
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
   const [filterStatus, setFilterStatus] = useState('all')
-  const [isLocationDialogOpen, setIsLocationDialogOpen] = useState(false) 
+  const [isLocationDialogOpen, setIsLocationDialogOpen] = useState(false)
 
-  const filteredItems = inventoryData.filter(item => {
+  // ✅ Normalize inventory data
+  const normalizedInventory = useMemo(() => 
+    normalizeInventoryItems(inventoryData), 
+    [inventoryData]
+  )
+
+  const filteredItems = normalizedInventory.filter(item => {
     const matchesSearch = item.itemName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          item.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          item.location.toLowerCase().includes(searchTerm.toLowerCase())
@@ -94,14 +102,14 @@ export default function InventoryTable({
                 size="sm"
                 onClick={() => setFilterStatus('all')}
               >
-                All ({inventoryData.length})
+                All ({normalizedInventory.length})
               </Button>
               <Button 
                 variant={filterStatus === 'low-stock' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setFilterStatus('low-stock')}
               >
-                Low Stock ({inventoryData.filter(i => i.quantity <= i.reorderLevel).length})
+                Low Stock ({normalizedInventory.filter(i => i.quantity <= i.reorderLevel).length})
               </Button>
             </div>
           </div>
@@ -193,7 +201,7 @@ export default function InventoryTable({
 
           {filteredItems.length > 0 && (
             <p className="text-sm text-muted-foreground mt-4">
-              Showing {filteredItems.length} of {inventoryData.length} items
+              Showing {filteredItems.length} of {normalizedInventory.length} items
             </p>
           )}
         </CardContent>

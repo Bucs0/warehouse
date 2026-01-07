@@ -1,6 +1,6 @@
-// ✅ UPDATED: Added locations prop to function signature and passed it to NewItemQuickAddDialog
+// ✅ UPDATED: Added data normalization for database compatibility
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from './ui/table'
 import { Badge } from './ui/badge'
@@ -9,13 +9,14 @@ import { Input } from './ui/input'
 import AddSupplierDialog from './AddSupplierDialog'
 import EditSupplierDialog from './EditSupplierDialog'
 import NewItemQuickAddDialog from './NewItemQuickAddDialog'
+import { normalizeSuppliers } from '../lib/dataMapper'
 
 export default function SuppliersPage({ 
   user, 
   suppliers, 
   inventoryData, 
   categories,
-  locations = [], // ✅ ADDED: locations prop
+  locations = [],
   onAddSupplier, 
   onEditSupplier, 
   onDeleteSupplier,
@@ -33,11 +34,17 @@ export default function SuppliersPage({
   const [pendingSupplierData, setPendingSupplierData] = useState(null)
   const [createdItemIds, setCreatedItemIds] = useState([])
 
-  const filteredSuppliers = suppliers.filter(supplier => {
+  // ✅ Normalize supplier data
+  const normalizedSuppliers = useMemo(() => 
+    normalizeSuppliers(suppliers), 
+    [suppliers]
+  )
+
+  const filteredSuppliers = normalizedSuppliers.filter(supplier => {
     const matchesSearch = 
       supplier.supplierName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       supplier.contactPerson.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      supplier.contactEmail.toLowerCase().includes(searchTerm.toLowerCase())
+      (supplier.contactEmail && supplier.contactEmail.toLowerCase().includes(searchTerm.toLowerCase()))
     
     let matchesStatus = true
     if (filterStatus === 'active') {
@@ -50,7 +57,9 @@ export default function SuppliersPage({
   })
 
   const getSupplierItemCount = (supplierId) => {
-    return inventoryData.filter(item => item.supplierId === supplierId).length
+    return inventoryData.filter(item => 
+      (item.supplierId || item.supplier_id) === supplierId
+    ).length
   }
 
   const handleDelete = (supplier) => {
@@ -134,8 +143,8 @@ export default function SuppliersPage({
     }
   }
 
-  const activeSuppliers = suppliers.filter(s => s.isActive).length
-  const inactiveSuppliers = suppliers.filter(s => !s.isActive).length
+  const activeSuppliers = normalizedSuppliers.filter(s => s.isActive).length
+  const inactiveSuppliers = normalizedSuppliers.filter(s => !s.isActive).length
 
   return (
     <div className="space-y-6">
@@ -152,7 +161,7 @@ export default function SuppliersPage({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Suppliers</p>
-                <h3 className="text-3xl font-bold mt-2">{suppliers.length}</h3>
+                <h3 className="text-3xl font-bold mt-2">{normalizedSuppliers.length}</h3>
               </div>
               <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                 <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -227,7 +236,7 @@ export default function SuppliersPage({
                 size="sm"
                 onClick={() => setFilterStatus('all')}
               >
-                All ({suppliers.length})
+                All ({normalizedSuppliers.length})
               </Button>
               <Button 
                 variant={filterStatus === 'active' ? 'default' : 'outline'}
@@ -277,11 +286,15 @@ export default function SuppliersPage({
                       <TableCell className="font-medium">{supplier.supplierName}</TableCell>
                       <TableCell>{supplier.contactPerson}</TableCell>
                       <TableCell>
-                        <a href={`mailto:${supplier.contactEmail}`} className="text-blue-600 hover:underline">
-                          {supplier.contactEmail}
-                        </a>
+                        {supplier.contactEmail ? (
+                          <a href={`mailto:${supplier.contactEmail}`} className="text-blue-600 hover:underline">
+                            {supplier.contactEmail}
+                          </a>
+                        ) : (
+                          <span className="text-muted-foreground">No email</span>
+                        )}
                       </TableCell>
-                      <TableCell>{supplier.contactPhone}</TableCell>
+                      <TableCell>{supplier.contactPhone || 'N/A'}</TableCell>
                       <TableCell>
                         <Badge variant="outline">{getSupplierItemCount(supplier.id)} items</Badge>
                       </TableCell>
@@ -320,7 +333,7 @@ export default function SuppliersPage({
 
           {filteredSuppliers.length > 0 && (
             <p className="text-sm text-muted-foreground mt-4">
-              Showing {filteredSuppliers.length} of {suppliers.length} suppliers
+              Showing {filteredSuppliers.length} of {normalizedSuppliers.length} suppliers
             </p>
           )}
         </CardContent>
@@ -344,7 +357,6 @@ export default function SuppliersPage({
         />
       )}
 
-      {/* ✅ UPDATED: Added locations prop to NewItemQuickAddDialog */}
       {pendingNewItems.length > 0 && (
         <NewItemQuickAddDialog
           open={isNewItemDialogOpen}
@@ -359,7 +371,7 @@ export default function SuppliersPage({
           }}
           itemName={pendingNewItems[currentNewItemIndex]}
           categories={categories}
-          locations={locations} // ✅ ADDED: Pass locations to dialog
+          locations={locations}
           onComplete={handleNewItemComplete}
         />
       )}

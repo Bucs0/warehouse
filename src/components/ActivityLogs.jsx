@@ -1,4 +1,4 @@
-
+// ✅ UPDATED: Added comprehensive data normalization for database compatibility
 
 import { useState, useMemo } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card'
@@ -8,6 +8,7 @@ import { Input } from './ui/input'
 import { Button } from './ui/button'
 import { Select } from './ui/select'
 import ExportDialog from './ExportDialog'
+import { normalizeActivityLogs } from '../lib/dataMapper'
 
 const MONTHS = [
   { value: '01', label: 'January' },
@@ -31,20 +32,26 @@ export default function ActivityLogs({ activityLogs, currentUser }) {
   const [selectedYear, setSelectedYear] = useState('all')
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false)
 
+  // ✅ Normalize activity logs data
+  const normalizedLogs = useMemo(() => 
+    normalizeActivityLogs(activityLogs), 
+    [activityLogs]
+  )
+
   // Get unique years from logs
   const availableYears = useMemo(() => {
     const years = new Set()
-    activityLogs.forEach(log => {
+    normalizedLogs.forEach(log => {
       const dateMatch = log.timestamp.match(/(\d{2})\/(\d{2})\/(\d{4})/)
       if (dateMatch) {
         years.add(dateMatch[3])
       }
     })
     return Array.from(years).sort((a, b) => b - a)
-  }, [activityLogs])
+  }, [normalizedLogs])
 
   // Filter logs
-  const filteredLogs = activityLogs.filter(log => {
+  const filteredLogs = normalizedLogs.filter(log => {
     const matchesSearch = 
       log.itemName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       log.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -182,7 +189,7 @@ export default function ActivityLogs({ activityLogs, currentUser }) {
                 size="sm"
                 onClick={() => setFilterAction('all')}
               >
-                All ({activityLogs.length})
+                All ({normalizedLogs.length})
               </Button>
               <Button 
                 variant={filterAction === 'Added' ? 'default' : 'outline'}
@@ -358,7 +365,7 @@ export default function ActivityLogs({ activityLogs, currentUser }) {
 
           {filteredLogs.length > 0 && (
             <p className="text-sm text-muted-foreground mt-4">
-              Showing {filteredLogs.length} of {activityLogs.length} logs
+              Showing {filteredLogs.length} of {normalizedLogs.length} logs
             </p>
           )}
         </CardContent>
@@ -368,7 +375,7 @@ export default function ActivityLogs({ activityLogs, currentUser }) {
       <ExportDialog
         open={isExportDialogOpen}
         onOpenChange={setIsExportDialogOpen}
-        activityLogs={activityLogs}
+        activityLogs={normalizedLogs}
         filters={getCurrentFilters()}
         currentUser={currentUser}
       />
