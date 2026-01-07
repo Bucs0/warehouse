@@ -43,7 +43,6 @@ app.post('/api/auth/login', async (req, res) => {
     );
     
     if (users.length === 0) {
-      // Check if user exists but not approved
       const [pendingUsers] = await pool.query(
         'SELECT * FROM users WHERE (username = ? OR email = ?) AND status = "pending"',
         [usernameOrEmail, usernameOrEmail]
@@ -58,7 +57,6 @@ app.post('/api/auth/login', async (req, res) => {
     
     const user = users[0];
     
-    // In production, use bcrypt to compare hashed passwords
     if (user.password !== password) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
@@ -81,7 +79,6 @@ app.post('/api/auth/signup', async (req, res) => {
   try {
     const { username, email, password, name } = req.body;
     
-    // Check if username or email already exists
     const [existing] = await pool.query(
       'SELECT * FROM users WHERE username = ? OR email = ?',
       [username, email]
@@ -97,7 +94,6 @@ app.post('/api/auth/signup', async (req, res) => {
       }
     }
     
-    // Insert new user
     const [result] = await pool.query(
       'INSERT INTO users (username, email, password, name, role, status) VALUES (?, ?, ?, ?, "Staff", "pending")',
       [username, email, password, name]
@@ -313,12 +309,19 @@ app.delete('/api/inventory/:id', async (req, res) => {
 
 // ========== CATEGORIES ROUTES ==========
 
-// Get all categories
+// Get all categories (FIXED DATE FORMAT)
 app.get('/api/categories', async (req, res) => {
   try {
-    const [categories] = await pool.query(
-      'SELECT * FROM categories ORDER BY category_name'
-    );
+    const [categories] = await pool.query(`
+      SELECT 
+        id,
+        category_name,
+        description,
+        DATE_FORMAT(date_added, '%m/%d/%Y') as date_added,
+        created_at
+      FROM categories 
+      ORDER BY category_name
+    `);
     res.json(categories);
   } catch (error) {
     console.error('Error fetching categories:', error);
@@ -329,21 +332,26 @@ app.get('/api/categories', async (req, res) => {
 // Add category
 app.post('/api/categories', async (req, res) => {
   try {
-    const { categoryName, description, dateAdded } = req.body;
+    const { categoryName, description } = req.body;
     
-    // Check for duplicate
+    if (!categoryName || !categoryName.trim()) {
+      return res.status(400).json({ error: 'Category name is required' });
+    }
+    
     const [existing] = await pool.query(
       'SELECT * FROM categories WHERE category_name = ?',
-      [categoryName]
+      [categoryName.trim()]
     );
     
     if (existing.length > 0) {
       return res.status(400).json({ error: 'Category already exists' });
     }
     
+    const currentDate = new Date().toISOString().split('T')[0];
+    
     const [result] = await pool.query(
       'INSERT INTO categories (category_name, description, date_added) VALUES (?, ?, ?)',
-      [categoryName, description, dateAdded]
+      [categoryName.trim(), description || '', currentDate]
     );
     
     res.json({ 
@@ -361,7 +369,6 @@ app.put('/api/categories/:id', async (req, res) => {
   try {
     const { categoryName, description } = req.body;
     
-    // Check for duplicate (excluding current category)
     const [existing] = await pool.query(
       'SELECT * FROM categories WHERE category_name = ? AND id != ?',
       [categoryName, req.params.id]
@@ -390,7 +397,6 @@ app.put('/api/categories/:id', async (req, res) => {
 // Delete category
 app.delete('/api/categories/:id', async (req, res) => {
   try {
-    // Check if category is being used
     const [items] = await pool.query(
       'SELECT COUNT(*) as count FROM inventory_items WHERE category_id = ?',
       [req.params.id]
@@ -420,46 +426,66 @@ app.delete('/api/categories/:id', async (req, res) => {
 
 // ========== LOCATIONS ROUTES ==========
 
-// Get all locations
+// Get all locations (FIXED DATE FORMAT)
 app.get('/api/locations', async (req, res) => {
   try {
-    const [locations] = await pool.query(
-      'SELECT * FROM locations ORDER BY location_name'
-    );
+    const [locations] = await pool.query(`
+      SELECT 
+        id,
+        location_name,
+        description,
+        DATE_FORMAT(date_added, '%m/%d/%Y') as date_added,
+        created_at
+      FROM locations 
+      ORDER BY location_name
+    `);
     res.json(locations);
   } catch (error) {
     console.error('Error fetching locations:', error);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: error.message || 'Server error' });
   }
 });
 
 // Add location
 app.post('/api/locations', async (req, res) => {
   try {
-    const { locationName, description, dateAdded } = req.body;
+    const { locationName, description } = req.body;
     
-    // Check for duplicate
+    if (!locationName || !locationName.trim()) {
+      return res.status(400).json({ error: 'Location name is required' });
+    }
+    
     const [existing] = await pool.query(
       'SELECT * FROM locations WHERE location_name = ?',
-      [locationName]
+      [locationName.trim()]
     );
     
     if (existing.length > 0) {
       return res.status(400).json({ error: 'Location already exists' });
     }
     
+    const currentDate = new Date().toISOString().split('T')[0];
+    
     const [result] = await pool.query(
       'INSERT INTO locations (location_name, description, date_added) VALUES (?, ?, ?)',
-      [locationName, description, dateAdded]
+      [locationName.trim(), description || '', currentDate]
     );
+    
+    console.log('✅ Location added successfully:', {
+      id: result.insertId,
+      locationName: locationName.trim()
+    });
     
     res.json({ 
       id: result.insertId,
       message: 'Location added successfully'
     });
   } catch (error) {
-    console.error('Error adding location:', error);
-    res.status(500).json({ error: 'Server error' });
+    console.error('❌ Error adding location:', error);
+    res.status(500).json({ 
+      error: error.message || 'Server error',
+      details: error.sqlMessage || ''
+    });
   }
 });
 
@@ -468,10 +494,13 @@ app.put('/api/locations/:id', async (req, res) => {
   try {
     const { locationName, description } = req.body;
     
-    // Check for duplicate (excluding current location)
+    if (!locationName || !locationName.trim()) {
+      return res.status(400).json({ error: 'Location name is required' });
+    }
+    
     const [existing] = await pool.query(
       'SELECT * FROM locations WHERE location_name = ? AND id != ?',
-      [locationName, req.params.id]
+      [locationName.trim(), req.params.id]
     );
     
     if (existing.length > 0) {
@@ -480,24 +509,31 @@ app.put('/api/locations/:id', async (req, res) => {
     
     const [result] = await pool.query(
       'UPDATE locations SET location_name = ?, description = ? WHERE id = ?',
-      [locationName, description, req.params.id]
+      [locationName.trim(), description || '', req.params.id]
     );
     
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'Location not found' });
     }
     
+    console.log('✅ Location updated successfully:', {
+      id: req.params.id,
+      locationName: locationName.trim()
+    });
+    
     res.json({ message: 'Location updated successfully' });
   } catch (error) {
-    console.error('Error updating location:', error);
-    res.status(500).json({ error: 'Server error' });
+    console.error('❌ Error updating location:', error);
+    res.status(500).json({ 
+      error: error.message || 'Server error',
+      details: error.sqlMessage || ''
+    });
   }
 });
 
 // Delete location
 app.delete('/api/locations/:id', async (req, res) => {
   try {
-    // Check if location is being used
     const [items] = await pool.query(
       'SELECT COUNT(*) as count FROM inventory_items WHERE location_id = ?',
       [req.params.id]
@@ -518,21 +554,37 @@ app.delete('/api/locations/:id', async (req, res) => {
       return res.status(404).json({ error: 'Location not found' });
     }
     
+    console.log('✅ Location deleted successfully:', req.params.id);
+    
     res.json({ message: 'Location deleted successfully' });
   } catch (error) {
-    console.error('Error deleting location:', error);
-    res.status(500).json({ error: 'Server error' });
+    console.error('❌ Error deleting location:', error);
+    res.status(500).json({ 
+      error: error.message || 'Server error',
+      details: error.sqlMessage || ''
+    });
   }
 });
 
 // ========== SUPPLIERS ROUTES ==========
 
-// Get all suppliers
+// Get all suppliers (FIXED DATE FORMAT)
 app.get('/api/suppliers', async (req, res) => {
   try {
-    const [suppliers] = await pool.query(
-      'SELECT * FROM suppliers ORDER BY supplier_name'
-    );
+    const [suppliers] = await pool.query(`
+      SELECT 
+        id,
+        supplier_name,
+        contact_person,
+        contact_email,
+        contact_phone,
+        address,
+        is_active,
+        DATE_FORMAT(date_added, '%m/%d/%Y') as date_added,
+        created_at
+      FROM suppliers 
+      ORDER BY supplier_name
+    `);
     res.json(suppliers);
   } catch (error) {
     console.error('Error fetching suppliers:', error);
@@ -549,15 +601,16 @@ app.post('/api/suppliers', async (req, res) => {
       contactEmail, 
       contactPhone, 
       address, 
-      isActive, 
-      dateAdded 
+      isActive 
     } = req.body;
+    
+    const currentDate = new Date().toISOString().split('T')[0];
     
     const [result] = await pool.query(
       `INSERT INTO suppliers 
        (supplier_name, contact_person, contact_email, contact_phone, address, is_active, date_added) 
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [supplierName, contactPerson, contactEmail, contactPhone, address, isActive, dateAdded]
+      [supplierName, contactPerson, contactEmail, contactPhone, address, isActive, currentDate]
     );
     
     res.json({ 
@@ -604,7 +657,6 @@ app.put('/api/suppliers/:id', async (req, res) => {
 // Delete supplier
 app.delete('/api/suppliers/:id', async (req, res) => {
   try {
-    // Check if supplier is being used
     const [items] = await pool.query(
       'SELECT COUNT(*) as count FROM inventory_items WHERE supplier_id = ?',
       [req.params.id]
@@ -653,7 +705,7 @@ app.get('/api/transactions', async (req, res) => {
   }
 });
 
-// Add transaction (with inventory update)
+// Add transaction
 app.post('/api/transactions', async (req, res) => {
   const connection = await pool.getConnection();
   try {
@@ -669,7 +721,6 @@ app.post('/api/transactions', async (req, res) => {
       stockAfter 
     } = req.body;
     
-    // Insert transaction
     await connection.query(
       `INSERT INTO stock_transactions 
        (item_id, transaction_type, quantity, reason, user_id, stock_before, stock_after) 
@@ -677,13 +728,11 @@ app.post('/api/transactions', async (req, res) => {
       [itemId, transactionType, quantity, reason, userId, stockBefore, stockAfter]
     );
     
-    // Update inventory quantity
     await connection.query(
       'UPDATE inventory_items SET quantity = ? WHERE id = ?',
       [stockAfter, itemId]
     );
     
-    // If transaction is OUT for damaged items, add to damaged_items table
     if (transactionType === 'OUT' && reason === 'Damaged/Discarded') {
       const [item] = await connection.query(
         'SELECT * FROM inventory_items WHERE id = ?',
@@ -729,7 +778,6 @@ app.get('/api/appointments', async (req, res) => {
       ORDER BY a.date, a.time
     `);
     
-    // Get items for each appointment
     for (let appointment of appointments) {
       const [items] = await pool.query(`
         SELECT 
@@ -767,7 +815,6 @@ app.post('/api/appointments', async (req, res) => {
       items 
     } = req.body;
     
-    // Insert appointment
     const [result] = await connection.query(
       `INSERT INTO appointments 
        (supplier_id, date, time, status, notes, scheduled_by_user_id) 
@@ -777,7 +824,6 @@ app.post('/api/appointments', async (req, res) => {
     
     const appointmentId = result.insertId;
     
-    // Insert appointment items
     for (const item of items) {
       await connection.query(
         'INSERT INTO appointment_items (appointment_id, item_id, quantity) VALUES (?, ?, ?)',
@@ -814,7 +860,6 @@ app.put('/api/appointments/:id', async (req, res) => {
       items 
     } = req.body;
     
-    // Update appointment
     await connection.query(
       `UPDATE appointments 
        SET supplier_id = ?, date = ?, time = ?, status = ?, notes = ?
@@ -822,13 +867,11 @@ app.put('/api/appointments/:id', async (req, res) => {
       [supplierId, date, time, status, notes, req.params.id]
     );
     
-    // Delete old items
     await connection.query(
       'DELETE FROM appointment_items WHERE appointment_id = ?',
       [req.params.id]
     );
     
-    // Insert new items
     for (const item of items) {
       await connection.query(
         'INSERT INTO appointment_items (appointment_id, item_id, quantity) VALUES (?, ?, ?)',
@@ -847,7 +890,7 @@ app.put('/api/appointments/:id', async (req, res) => {
   }
 });
 
-// Complete appointment (update inventory)
+// Complete appointment
 app.post('/api/appointments/:id/complete', async (req, res) => {
   const connection = await pool.getConnection();
   try {
@@ -855,7 +898,6 @@ app.post('/api/appointments/:id/complete', async (req, res) => {
     
     const { userId } = req.body;
     
-    // Get appointment details
     const [appointments] = await connection.query(
       'SELECT * FROM appointments WHERE id = ?',
       [req.params.id]
@@ -867,15 +909,12 @@ app.post('/api/appointments/:id/complete', async (req, res) => {
     
     const appointment = appointments[0];
     
-    // Get appointment items
     const [items] = await connection.query(
       'SELECT * FROM appointment_items WHERE appointment_id = ?',
       [req.params.id]
     );
     
-    // Update inventory for each item
     for (const item of items) {
-      // Get current quantity
       const [inventory] = await connection.query(
         'SELECT quantity FROM inventory_items WHERE id = ?',
         [item.item_id]
@@ -884,13 +923,11 @@ app.post('/api/appointments/:id/complete', async (req, res) => {
       const currentQty = inventory[0].quantity;
       const newQty = currentQty + item.quantity;
       
-      // Update inventory
       await connection.query(
         'UPDATE inventory_items SET quantity = ?, supplier_id = ? WHERE id = ?',
         [newQty, appointment.supplier_id, item.item_id]
       );
       
-      // Create transaction record
       await connection.query(
         `INSERT INTO stock_transactions 
          (item_id, transaction_type, quantity, reason, user_id, stock_before, stock_after) 
@@ -899,7 +936,6 @@ app.post('/api/appointments/:id/complete', async (req, res) => {
       );
     }
     
-    // Update appointment status
     await connection.query(
       'UPDATE appointments SET status = "completed" WHERE id = ?',
       [req.params.id]
@@ -935,7 +971,7 @@ app.post('/api/appointments/:id/cancel', async (req, res) => {
   }
 });
 
-// ========== DAMAGED ITEMS ROUTES (continued) ==========
+// ========== DAMAGED ITEMS ROUTES ==========
 
 // Get all damaged items
 app.get('/api/damaged-items', async (req, res) => {
@@ -1102,7 +1138,7 @@ app.post('/api/low-stock-alerts/:itemId', async (req, res) => {
   }
 });
 
-// Clear low stock alert when item is restocked
+// Clear low stock alert
 app.delete('/api/low-stock-alerts/:itemId', async (req, res) => {
   try {
     await pool.query(
@@ -1122,37 +1158,30 @@ app.delete('/api/low-stock-alerts/:itemId', async (req, res) => {
 // Get dashboard statistics
 app.get('/api/dashboard/stats', async (req, res) => {
   try {
-    // Total items
     const [totalItems] = await pool.query(
       'SELECT COUNT(*) as count FROM inventory_items'
     );
     
-    // Low stock items
     const [lowStock] = await pool.query(
       'SELECT COUNT(*) as count FROM inventory_items WHERE quantity <= reorder_level'
     );
     
-    // Damaged items
     const [damaged] = await pool.query(
       'SELECT COUNT(*) as count FROM inventory_items WHERE damaged_status = "Damaged"'
     );
     
-    // Total value
     const [totalValue] = await pool.query(
       'SELECT SUM(quantity * price) as total FROM inventory_items'
     );
     
-    // Total IN transactions
     const [totalIn] = await pool.query(
       'SELECT SUM(quantity) as total FROM stock_transactions WHERE transaction_type = "IN"'
     );
     
-    // Total OUT transactions
     const [totalOut] = await pool.query(
       'SELECT SUM(quantity) as total FROM stock_transactions WHERE transaction_type = "OUT"'
     );
     
-    // Upcoming appointments
     const [upcomingAppointments] = await pool.query(
       `SELECT COUNT(*) as count FROM appointments 
        WHERE date >= CURDATE() 
@@ -1176,7 +1205,7 @@ app.get('/api/dashboard/stats', async (req, res) => {
 
 // ========== REPORTS ==========
 
-// Get activity logs for reporting (with filters)
+// Get activity logs for reporting
 app.get('/api/reports/activity-logs', async (req, res) => {
   try {
     const { action, month, year } = req.query;
