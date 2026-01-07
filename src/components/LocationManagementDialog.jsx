@@ -1,4 +1,4 @@
-// ✅ FIXED LocationManagementDialog.jsx - Proper null checks
+// ✅ FIXED LocationManagementDialog.jsx - Proper error handling
 
 import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog'
@@ -24,6 +24,7 @@ export default function LocationManagementDialog({
     description: ''
   })
   const [searchTerm, setSearchTerm] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     if (!open) {
@@ -38,63 +39,87 @@ export default function LocationManagementDialog({
   }
 
   const handleAdd = async () => {
-    if (!formData.locationName.trim()) {
+    const trimmedName = formData.locationName.trim()
+    
+    if (!trimmedName) {
       alert('Please enter a location name')
       return
     }
 
-    // ✅ FIX: Safe comparison with null checks
+    // Check for duplicate
     const duplicate = locations.find(loc => {
       const locName = loc.locationName || loc.location_name || ''
-      return locName.toLowerCase() === formData.locationName.toLowerCase()
+      return locName.toLowerCase() === trimmedName.toLowerCase()
     })
     
     if (duplicate) {
-      alert(`Location "${formData.locationName}" already exists!`)
+      alert(`Location "${trimmedName}" already exists!`)
       return
     }
 
-    try {
-      await onAddLocation({
-        locationName: formData.locationName.trim(),
-        description: formData.description.trim(),
-        dateAdded: new Date().toLocaleDateString('en-PH')
-      })
+    setIsSubmitting(true)
 
+    try {
+      // ✅ FIX: Send proper data format - backend handles date automatically
+      const locationData = {
+        locationName: trimmedName,
+        description: formData.description.trim()
+      }
+
+      console.log('📤 Sending location data:', locationData)
+      
+      await onAddLocation(locationData)
+
+      // Reset form
       setFormData({ locationName: '', description: '' })
       setIsAddMode(false)
+      
+      console.log('✅ Location added successfully')
     } catch (error) {
-      console.error('Failed to add location:', error)
-      // Error will be handled by parent component
+      console.error('❌ Failed to add location:', error)
+      alert(`Failed to add location: ${error.message || 'Unknown error'}`)
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
-  const handleEdit = () => {
-    if (!formData.locationName.trim()) {
+  const handleEdit = async () => {
+    const trimmedName = formData.locationName.trim()
+    
+    if (!trimmedName) {
       alert('Please enter a location name')
       return
     }
 
-    // ✅ FIX: Safe comparison with null checks
+    // Check for duplicate
     const duplicate = locations.find(loc => {
       if (loc.id === editingLocation.id) return false
       const locName = loc.locationName || loc.location_name || ''
-      return locName.toLowerCase() === formData.locationName.toLowerCase()
+      return locName.toLowerCase() === trimmedName.toLowerCase()
     })
     
     if (duplicate) {
-      alert(`Location "${formData.locationName}" already exists!`)
+      alert(`Location "${trimmedName}" already exists!`)
       return
     }
 
-    onEditLocation({
-      ...editingLocation,
-      locationName: formData.locationName.trim(),
-      description: formData.description.trim()
-    })
+    setIsSubmitting(true)
 
-    setFormData({ locationName: '', description: '' })
-    setEditingLocation(null)
+    try {
+      await onEditLocation({
+        ...editingLocation,
+        locationName: trimmedName,
+        description: formData.description.trim()
+      })
+
+      setFormData({ locationName: '', description: '' })
+      setEditingLocation(null)
+    } catch (error) {
+      console.error('❌ Failed to edit location:', error)
+      alert(`Failed to edit location: ${error.message || 'Unknown error'}`)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const startEdit = (location) => {
@@ -129,7 +154,6 @@ export default function LocationManagementDialog({
     }).length
   }
 
-  // ✅ FIX: Safe filtering with null checks
   const filteredLocations = locations.filter(location => {
     if (!location) return false
     
@@ -152,6 +176,7 @@ export default function LocationManagementDialog({
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* Add/Edit Form */}
           {(isAddMode || editingLocation) && (
             <div className="border rounded-lg p-4 bg-blue-50">
               <h4 className="font-semibold mb-4">
@@ -168,6 +193,7 @@ export default function LocationManagementDialog({
                     placeholder="e.g., Warehouse A, Shelf 1"
                     value={formData.locationName}
                     onChange={(e) => handleChange('locationName', e.target.value)}
+                    disabled={isSubmitting}
                     autoFocus
                   />
                 </div>
@@ -179,6 +205,7 @@ export default function LocationManagementDialog({
                     placeholder="e.g., Main storage area, first floor"
                     value={formData.description}
                     onChange={(e) => handleChange('description', e.target.value)}
+                    disabled={isSubmitting}
                   />
                 </div>
 
@@ -186,8 +213,19 @@ export default function LocationManagementDialog({
                   <Button 
                     onClick={editingLocation ? handleEdit : handleAdd}
                     className="flex-1"
+                    disabled={isSubmitting}
                   >
-                    {editingLocation ? 'Save Changes' : 'Add Location'}
+                    {isSubmitting ? (
+                      <>
+                        <svg className="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Saving...
+                      </>
+                    ) : (
+                      editingLocation ? 'Save Changes' : 'Add Location'
+                    )}
                   </Button>
                   <Button 
                     variant="outline" 
@@ -197,6 +235,7 @@ export default function LocationManagementDialog({
                       setFormData({ locationName: '', description: '' })
                     }}
                     className="flex-1"
+                    disabled={isSubmitting}
                   >
                     Cancel
                   </Button>
@@ -205,6 +244,7 @@ export default function LocationManagementDialog({
             </div>
           )}
 
+          {/* Add Button */}
           {!isAddMode && !editingLocation && (
             <Button 
               onClick={() => setIsAddMode(true)}
@@ -217,6 +257,7 @@ export default function LocationManagementDialog({
             </Button>
           )}
 
+          {/* Statistics */}
           <div className="grid grid-cols-3 gap-4">
             <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
               <p className="text-sm text-blue-600 font-medium">Total Locations</p>
@@ -242,6 +283,7 @@ export default function LocationManagementDialog({
             </div>
           </div>
 
+          {/* Search */}
           <div className="space-y-2">
             <Label>Search Locations</Label>
             <Input
@@ -252,6 +294,7 @@ export default function LocationManagementDialog({
             />
           </div>
 
+          {/* Locations Table */}
           <div className="border rounded-lg">
             <Table>
               <TableHeader>
