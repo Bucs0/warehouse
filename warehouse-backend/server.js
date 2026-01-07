@@ -238,20 +238,41 @@ app.post('/api/inventory', async (req, res) => {
       dateAdded 
     } = req.body;
     
+    // Use current date if dateAdded is not provided
+    const currentDate = dateAdded || new Date().toISOString().split('T')[0];
+    
+    console.log('📥 Adding inventory item:', {
+      itemName,
+      categoryId,
+      quantity,
+      locationId,
+      reorderLevel,
+      price,
+      supplierId,
+      dateAdded: currentDate
+    });
+    
     const [result] = await pool.query(
       `INSERT INTO inventory_items 
        (item_name, category_id, quantity, location_id, reorder_level, price, supplier_id, date_added) 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [itemName, categoryId, quantity, locationId, reorderLevel, price, supplierId || null, dateAdded]
+      [itemName, categoryId, quantity, locationId, reorderLevel, price, supplierId || null, currentDate]
     );
+    
+    console.log('✅ Item added successfully with ID:', result.insertId);
     
     res.json({ 
       id: result.insertId, 
       message: 'Item added successfully' 
     });
   } catch (error) {
-    console.error('Error adding item:', error);
-    res.status(500).json({ error: 'Server error' });
+    console.error('❌ Error adding item:', error);
+    console.error('Error details:', error.message, error.sqlMessage);
+    res.status(500).json({ 
+      error: 'Server error',
+      details: error.message,
+      sqlError: error.sqlMessage 
+    });
   }
 });
 

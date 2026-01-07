@@ -1,13 +1,14 @@
 
 // Dialog for adding new supplier with item selection
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog'
 import { Input } from './ui/input'
 import { Label } from './ui/label'
 import { Select } from './ui/select'
 import { Button } from './ui/button'
 import { Badge } from './ui/badge'
+import { normalizeInventoryItems } from '../lib/dataMapper'
 
 export default function AddSupplierDialog({ 
   open, 
@@ -29,6 +30,18 @@ export default function AddSupplierDialog({
   const [newItemNames, setNewItemNames] = useState([])
   const [newItemInput, setNewItemInput] = useState('')
 
+  // ✅ Normalize inventory data to handle both snake_case and camelCase
+  const normalizedInventory = useMemo(() => 
+    normalizeInventoryItems(inventoryData),
+    [inventoryData]
+  )
+
+  console.log('📦 AddSupplierDialog - Inventory Data:', {
+    raw: inventoryData?.slice(0, 2),
+    normalized: normalizedInventory?.slice(0, 2),
+    count: normalizedInventory?.length
+  })
+
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
@@ -48,8 +61,8 @@ export default function AddSupplierDialog({
       return
     }
 
-    // Check if item already exists in inventory
-    const existsInInventory = inventoryData.some(
+    // Check if item already exists in inventory (using normalized data)
+    const existsInInventory = normalizedInventory.some(
       item => item.itemName.toLowerCase() === trimmedName.toLowerCase()
     )
     if (existsInInventory) {
@@ -197,11 +210,11 @@ export default function AddSupplierDialog({
             <h3 className="font-semibold text-sm">Items This Supplier Can Supply</h3>
             
             {/* Existing Items Selection */}
-            {inventoryData.length > 0 && (
+            {normalizedInventory.length > 0 && (
               <div className="space-y-2">
                 <Label>Select from existing inventory:</Label>
                 <div className="max-h-48 overflow-y-auto border rounded-lg p-3 space-y-2 bg-gray-50">
-                  {inventoryData.map(item => (
+                  {normalizedInventory.map(item => (
                     <label 
                       key={item.id} 
                       className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded cursor-pointer"

@@ -180,9 +180,32 @@ export default function App() {
   
   const handleAddItem = async (newItem) => {
     try {
+      console.log('📤 Frontend: Adding item:', newItem)
+      
       // Find category ID and location ID
       const category = categories.find(c => c.category_name === newItem.category || c.categoryName === newItem.category)
       const location = locations.find(l => l.location_name === newItem.location || l.locationName === newItem.location)
+      
+      if (!category) {
+        throw new Error(`Category "${newItem.category}" not found`)
+      }
+      if (!location) {
+        throw new Error(`Location "${newItem.location}" not found`)
+      }
+      
+      // Get current date if not provided
+      const currentDate = newItem.dateAdded || new Date().toISOString().split('T')[0]
+      
+      console.log('📤 Sending to API:', {
+        itemName: newItem.itemName,
+        categoryId: category?.id,
+        quantity: newItem.quantity,
+        locationId: location?.id,
+        reorderLevel: newItem.reorderLevel,
+        price: newItem.price,
+        supplierId: newItem.supplierId,
+        dateAdded: currentDate
+      })
       
       await inventoryAPI.add({
         itemName: newItem.itemName,
@@ -192,7 +215,7 @@ export default function App() {
         reorderLevel: newItem.reorderLevel,
         price: newItem.price,
         supplierId: newItem.supplierId,
-        dateAdded: newItem.dateAdded
+        dateAdded: currentDate
       })
       
       await addActivityLog(
@@ -201,11 +224,13 @@ export default function App() {
         `Added ${newItem.quantity} units to inventory`
       )
       
+      console.log('✅ Item added successfully, reloading inventory...')
+      
       // Reload inventory
       const inventory = await inventoryAPI.getAll()
       setInventoryData(inventory)
     } catch (error) {
-      console.error('Error adding item:', error)
+      console.error('❌ Error adding item:', error)
       alert('Failed to add item: ' + error.message)
     }
   }
@@ -452,7 +477,20 @@ export default function App() {
   
   const handleAddSupplier = async (newSupplier) => {
     try {
-      await suppliersAPI.add(newSupplier)
+      console.log('📤 Adding supplier:', newSupplier)
+      
+      // Get current date if not provided
+      const currentDate = newSupplier.dateAdded || new Date().toISOString().split('T')[0]
+      
+      await suppliersAPI.add({
+        supplierName: newSupplier.supplierName,
+        contactPerson: newSupplier.contactPerson,
+        contactEmail: newSupplier.contactEmail || '',
+        contactPhone: newSupplier.contactPhone || '',
+        address: newSupplier.address || '',
+        isActive: newSupplier.isActive !== undefined ? newSupplier.isActive : true,
+        dateAdded: currentDate
+      })
       
       await addActivityLog(
         newSupplier.supplierName,
@@ -460,10 +498,12 @@ export default function App() {
         'New supplier added'
       )
       
+      console.log('✅ Supplier added successfully, reloading suppliers...')
+      
       const sups = await suppliersAPI.getAll()
       setSuppliers(sups)
     } catch (error) {
-      console.error('Error adding supplier:', error)
+      console.error('❌ Error adding supplier:', error)
       alert('Failed to add supplier: ' + error.message)
     }
   }

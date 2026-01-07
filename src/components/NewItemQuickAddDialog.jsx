@@ -1,13 +1,14 @@
 // Quick dialog for adding item info when creating supplier with new items
 // ✅ UPDATED: Removed quantity field - automatically set to 0 when adding new items
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog'
 import { Input } from './ui/input'
 import { Label } from './ui/label'
 import { Select } from './ui/select'
 import { Button } from './ui/button'
 import { Badge } from './ui/badge'
+import { normalizeCategories, normalizeLocations } from '../lib/dataMapper'
 
 export default function NewItemQuickAddDialog({ 
   open, 
@@ -17,9 +18,24 @@ export default function NewItemQuickAddDialog({
   locations = [],
   onComplete 
 }) {
+  // ✅ Normalize categories and locations to handle snake_case from database
+  const normalizedCategories = useMemo(() => 
+    normalizeCategories(categories || []),
+    [categories]
+  )
+  
+  const normalizedLocations = useMemo(() => 
+    normalizeLocations(locations || []),
+    [locations]
+  )
+
+  console.log('📝 NewItemQuickAddDialog - Data:', {
+    categories: { raw: categories?.slice(0, 2), normalized: normalizedCategories?.slice(0, 2) },
+    locations: { raw: locations?.slice(0, 2), normalized: normalizedLocations?.slice(0, 2) }
+  })
+
   const [formData, setFormData] = useState({
-    category: 'Office Supplies',
-    // ✅ REMOVED: quantity field - will be set to 0 automatically
+    category: normalizedCategories.length > 0 ? normalizedCategories[0].categoryName : 'Office Supplies',
     location: '',
     reorderLevel: '10',
     price: ''
@@ -29,13 +45,13 @@ export default function NewItemQuickAddDialog({
   useEffect(() => {
     if (itemName) {
       setFormData({
-        category: 'Office Supplies',
+        category: normalizedCategories.length > 0 ? normalizedCategories[0].categoryName : 'Office Supplies',
         location: '',
         reorderLevel: '10',
         price: ''
       })
     }
-  }, [itemName])
+  }, [itemName, normalizedCategories])
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -77,8 +93,8 @@ export default function NewItemQuickAddDialog({
               value={formData.category}
               onChange={(e) => handleChange('category', e.target.value)}
             >
-              {categories && categories.length > 0 ? (
-                categories.map(cat => (
+              {normalizedCategories && normalizedCategories.length > 0 ? (
+                normalizedCategories.map(cat => (
                   <option key={cat.id} value={cat.categoryName}>
                     {cat.categoryName}
                   </option>
@@ -116,7 +132,7 @@ export default function NewItemQuickAddDialog({
             <Label htmlFor="quick-location">
               Location <span className="text-red-500">*</span>
             </Label>
-            {locations && locations.length > 0 ? (
+            {normalizedLocations && normalizedLocations.length > 0 ? (
               <Select
                 id="quick-location"
                 value={formData.location}
@@ -124,7 +140,7 @@ export default function NewItemQuickAddDialog({
                 required
               >
                 <option value="">Select Location...</option>
-                {locations.map(location => (
+                {normalizedLocations.map(location => (
                   <option key={location.id} value={location.locationName}>
                     {location.locationName}
                     {location.description && ` - ${location.description}`}

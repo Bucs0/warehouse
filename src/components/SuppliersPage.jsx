@@ -101,37 +101,47 @@ export default function SuppliersPage({
 
   const handleNewItemComplete = (itemData) => {
     const itemName = pendingNewItems[currentNewItemIndex]
-    const newItemId = Date.now() + currentNewItemIndex
     
+    console.log('📦 SuppliersPage - handleNewItemComplete:', {
+      itemName,
+      itemData,
+      pendingSupplierData
+    })
+    
+    // ✅ Structure the item data correctly for handleAddItem
     const newItem = {
-      id: newItemId,
       itemName: itemName,
-      ...itemData,
-      supplier: pendingSupplierData.supplierName,
-      supplierId: null,
+      category: itemData.category,
+      quantity: itemData.quantity || 0,
+      location: itemData.location,
+      reorderLevel: itemData.reorderLevel || 10,
+      price: itemData.price || 0,
+      supplierId: null, // Will be set later when supplier is created
       damagedStatus: 'Good',
-      dateAdded: new Date().toLocaleDateString('en-PH')
+      dateAdded: new Date().toISOString().split('T')[0]
     }
     
+    console.log('📤 Calling onAddItem with:', newItem)
+    
     onAddItem(newItem)
-    setCreatedItemIds(prev => [...prev, newItemId])
+    
+    // Store the item name for linking to supplier later
+    setCreatedItemIds(prev => [...prev, itemName])
     
     if (currentNewItemIndex < pendingNewItems.length - 1) {
       setCurrentNewItemIndex(currentNewItemIndex + 1)
     } else {
-      const supplierId = Date.now()
-      
+      // Create supplier after all items are added
       const finalSupplier = {
-        id: supplierId,
         supplierName: pendingSupplierData.supplierName,
         contactPerson: pendingSupplierData.contactPerson,
         contactEmail: pendingSupplierData.contactEmail,
         contactPhone: pendingSupplierData.contactPhone,
         address: pendingSupplierData.address,
-        isActive: pendingSupplierData.isActive,
-        suppliedItemIds: [...pendingSupplierData.suppliedItemIds, ...createdItemIds, newItemId],
-        dateAdded: new Date().toLocaleDateString('en-PH')
+        isActive: pendingSupplierData.isActive
       }
+      
+      console.log('✅ All items added, creating supplier:', finalSupplier)
       
       onAddSupplier(finalSupplier)
       
