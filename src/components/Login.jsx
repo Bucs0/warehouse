@@ -1,22 +1,9 @@
-
-
 import { useState, useEffect } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card'
 import { Input } from './ui/input'
 import { Label } from './ui/label'
 import { Button } from './ui/button'
-import { Badge } from './ui/badge'
-
-// Admin account (hardcoded)
-const ADMIN_ACCOUNT = {
-  id: 'admin-1',
-  username: 'admin',
-  email: 'markjadebucao10@gmail.com',
-  password: 'q110978123',
-  role: 'Admin',
-  name: 'Mark Jade Bucao',
-  status: 'approved'
-}
+import { authAPI } from '../lib/api'
 
 export default function Login({ onLogin }) {
   const [mode, setMode] = useState('login')
@@ -30,74 +17,22 @@ export default function Login({ onLogin }) {
   })
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [approvedUsers, setApprovedUsers] = useState([])
 
-  // ✅ FIXED: Load approved users from localStorage
-  useEffect(() => {
-    const savedApproved = localStorage.getItem('approvedUsers')
-    if (savedApproved) {
-      setApprovedUsers(JSON.parse(savedApproved))
-    }
-  }, [])
-
-  // ✅ FIXED: Poll for changes every 2 seconds to detect approvals
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const savedApproved = localStorage.getItem('approvedUsers')
-      if (savedApproved) {
-        setApprovedUsers(JSON.parse(savedApproved))
-      }
-    }, 2000)
-    
-    return () => clearInterval(interval)
-  }, [])
-
-  const handleLogin = () => {
+  const handleLogin = async () => {
     setError('')
     setIsLoading(true)
 
-    setTimeout(() => {
-      const input = loginData.usernameOrEmail.toLowerCase().trim()
-
-      // Check admin account (username or email)
-      if ((input === ADMIN_ACCOUNT.username || input === ADMIN_ACCOUNT.email.toLowerCase()) 
-          && loginData.password === ADMIN_ACCOUNT.password) {
-        onLogin(ADMIN_ACCOUNT)
-        return
-      }
-
-      // ✅ FIXED: Check approved staff users from localStorage
-      const savedApproved = localStorage.getItem('approvedUsers')
-      const currentApprovedUsers = savedApproved ? JSON.parse(savedApproved) : []
-      
-      const user = currentApprovedUsers.find(u => 
-        (u.username.toLowerCase() === input || u.email.toLowerCase() === input) 
-        && u.password === loginData.password
-      )
-      
-      if (user) {
-        onLogin(user)
-        return
-      }
-
-      // ✅ FIXED: Check if user is still pending
-      const savedPending = localStorage.getItem('pendingUsers')
-      const pendingUsers = savedPending ? JSON.parse(savedPending) : []
-      
-      const pendingUser = pendingUsers.find(u => 
-        u.username.toLowerCase() === input || u.email.toLowerCase() === input
-      )
-      
-      if (pendingUser) {
-        setError('Your account is pending admin approval. Please wait for approval.')
-      } else {
-        setError('Invalid username/email or password')
-      }
+    try {
+      const user = await authAPI.login(loginData)
+      onLogin(user)
+    } catch (err) {
+      setError(err.message)
+    } finally {
       setIsLoading(false)
-    }, 500)
+    }
   }
 
-  const handleSignup = () => {
+  const handleSignup = async () => {
     setError('')
 
     if (!signupData.username || !signupData.email || !signupData.password || !signupData.name) {
@@ -120,48 +55,17 @@ export default function Login({ onLogin }) {
       return
     }
 
-    // Check if username already exists
-    const savedApproved = localStorage.getItem('approvedUsers')
-    const savedPending = localStorage.getItem('pendingUsers')
-    const currentApprovedUsers = savedApproved ? JSON.parse(savedApproved) : []
-    const currentPendingUsers = savedPending ? JSON.parse(savedPending) : []
+    setIsLoading(true)
 
-    const usernameExists = currentApprovedUsers.some(u => u.username === signupData.username) ||
-                          currentPendingUsers.some(u => u.username === signupData.username) ||
-                          signupData.username === ADMIN_ACCOUNT.username
-
-    if (usernameExists) {
-      setError('Username already exists')
-      return
+    try {
+      await authAPI.signup(signupData)
+      setMode('pendingApproval')
+      setSignupData({ username: '', email: '', password: '', confirmPassword: '', name: '' })
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setIsLoading(false)
     }
-
-    // Check if email already exists
-    const emailExists = currentApprovedUsers.some(u => u.email === signupData.email) ||
-                       currentPendingUsers.some(u => u.email === signupData.email) ||
-                       signupData.email === ADMIN_ACCOUNT.email
-
-    if (emailExists) {
-      setError('Email already registered')
-      return
-    }
-
-    const newUser = {
-      id: `user-${Date.now()}`,
-      username: signupData.username,
-      email: signupData.email,
-      password: signupData.password,
-      name: signupData.name,
-      role: 'Staff',
-      status: 'pending',
-      signupDate: new Date().toLocaleDateString('en-PH')
-    }
-
-    // Add to pending users
-    const updatedPending = [...currentPendingUsers, newUser]
-    localStorage.setItem('pendingUsers', JSON.stringify(updatedPending))
-    
-    setMode('pendingApproval')
-    setSignupData({ username: '', email: '', password: '', confirmPassword: '', name: '' })
   }
 
   const handleKeyPress = (e, action) => {
@@ -236,6 +140,7 @@ export default function Login({ onLogin }) {
                   value={signupData.name}
                   onChange={(e) => setSignupData({ ...signupData, name: e.target.value })}
                   onKeyPress={(e) => handleKeyPress(e, handleSignup)}
+                  disabled={isLoading}
                 />
               </div>
 
@@ -248,6 +153,7 @@ export default function Login({ onLogin }) {
                   value={signupData.username}
                   onChange={(e) => setSignupData({ ...signupData, username: e.target.value })}
                   onKeyPress={(e) => handleKeyPress(e, handleSignup)}
+                  disabled={isLoading}
                 />
               </div>
 
@@ -260,6 +166,7 @@ export default function Login({ onLogin }) {
                   value={signupData.email}
                   onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
                   onKeyPress={(e) => handleKeyPress(e, handleSignup)}
+                  disabled={isLoading}
                 />
               </div>
 
@@ -272,6 +179,7 @@ export default function Login({ onLogin }) {
                   value={signupData.password}
                   onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
                   onKeyPress={(e) => handleKeyPress(e, handleSignup)}
+                  disabled={isLoading}
                 />
               </div>
 
@@ -284,6 +192,7 @@ export default function Login({ onLogin }) {
                   value={signupData.confirmPassword}
                   onChange={(e) => setSignupData({ ...signupData, confirmPassword: e.target.value })}
                   onKeyPress={(e) => handleKeyPress(e, handleSignup)}
+                  disabled={isLoading}
                 />
               </div>
 
@@ -293,8 +202,8 @@ export default function Login({ onLogin }) {
                 </div>
               )}
 
-              <Button onClick={handleSignup} className="w-full">
-                Sign Up
+              <Button onClick={handleSignup} className="w-full" disabled={isLoading}>
+                {isLoading ? 'Creating Account...' : 'Sign Up'}
               </Button>
 
               <div className="text-center">
@@ -305,6 +214,7 @@ export default function Login({ onLogin }) {
                     setError('')
                   }}
                   className="text-sm text-blue-600 hover:underline"
+                  disabled={isLoading}
                 >
                   Already have an account? Login
                 </button>
@@ -390,6 +300,7 @@ export default function Login({ onLogin }) {
                 setMode('signup')
                 setError('')
               }}
+              disabled={isLoading}
             >
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
