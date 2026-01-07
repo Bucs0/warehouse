@@ -1,6 +1,3 @@
-
-// Stock Transaction with search bar and better item identification
-
 import { useState } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from './ui/table'
@@ -16,33 +13,40 @@ export default function StockTransactions({
   onTransaction 
 }) {
   const [searchTerm, setSearchTerm] = useState('')
-  const [itemSearchTerm, setItemSearchTerm] = useState('') // NEW: Search for items
+  const [itemSearchTerm, setItemSearchTerm] = useState('')
   const [filterType, setFilterType] = useState('all')
   const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false)
   const [selectedItem, setSelectedItem] = useState(null)
 
   // Filter transactions
   const filteredTransactions = transactionHistory.filter(transaction => {
+    const itemName = transaction.itemName || transaction.item_name || ''
+    const userName = transaction.userName || transaction.user_name || ''
+    
     const matchesSearch = 
-      transaction.itemName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      transaction.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      itemName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       transaction.reason.toLowerCase().includes(searchTerm.toLowerCase())
     
-    const matchesType = filterType === 'all' || transaction.transactionType === filterType
+    const matchesType = filterType === 'all' || transaction.transactionType === filterType || transaction.transaction_type === filterType
 
     return matchesSearch && matchesType
   }).reverse()
 
-  // NEW: Filter items for transaction
-  const filteredItems = inventoryData.filter(item =>
-    item.itemName.toLowerCase().includes(itemSearchTerm.toLowerCase()) ||
-    item.category.toLowerCase().includes(itemSearchTerm.toLowerCase()) ||
-    item.location.toLowerCase().includes(itemSearchTerm.toLowerCase())
-  )
+  // Filter items for transaction
+  const filteredItems = inventoryData.filter(item => {
+    const itemName = item.itemName || item.item_name || ''
+    const category = item.category || item.categoryName || item.category_name || ''
+    const location = item.location || item.locationName || item.location_name || ''
+    
+    return itemName.toLowerCase().includes(itemSearchTerm.toLowerCase()) ||
+           category.toLowerCase().includes(itemSearchTerm.toLowerCase()) ||
+           location.toLowerCase().includes(itemSearchTerm.toLowerCase())
+  })
 
-  const totalIn = transactionHistory.filter(t => t.transactionType === 'IN')
+  const totalIn = transactionHistory.filter(t => (t.transactionType || t.transaction_type) === 'IN')
     .reduce((sum, t) => sum + t.quantity, 0)
-  const totalOut = transactionHistory.filter(t => t.transactionType === 'OUT')
+  const totalOut = transactionHistory.filter(t => (t.transactionType || t.transaction_type) === 'OUT')
     .reduce((sum, t) => sum + t.quantity, 0)
 
   const handleOpenTransaction = (item) => {
@@ -121,7 +125,6 @@ export default function StockTransactions({
             Search and click on an item to record a transaction
           </p>
           
-          {/* NEW: Search bar for items */}
           <div className="mt-4">
             <Input
               type="search"
@@ -138,52 +141,60 @@ export default function StockTransactions({
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredItems.map((item) => (
-                <div
-                  key={item.id}
-                  onClick={() => handleOpenTransaction(item)}
-                  className="p-4 border rounded-lg hover:border-blue-500 hover:shadow-md transition-all cursor-pointer bg-white"
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-lg">{item.itemName}</h4>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Badge variant="outline" className="text-xs">{item.category}</Badge>
-                        {item.quantity <= item.reorderLevel && (
-                          <Badge variant="warning" className="text-xs">Low Stock</Badge>
-                        )}
+              {filteredItems.map((item) => {
+                const itemName = item.itemName || item.item_name
+                const category = item.category || item.categoryName || item.category_name
+                const location = item.location || item.locationName || item.location_name
+                const reorderLevel = item.reorderLevel || item.reorder_level
+                const supplier = item.supplier || item.supplierName || item.supplier_name
+                
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => handleOpenTransaction(item)}
+                    className="p-4 border rounded-lg hover:border-blue-500 hover:shadow-md transition-all cursor-pointer bg-white"
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-lg">{itemName}</h4>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant="outline" className="text-xs">{category}</Badge>
+                          {item.quantity <= reorderLevel && (
+                            <Badge variant="warning" className="text-xs">Low Stock</Badge>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className={`text-2xl font-bold ${item.quantity <= reorderLevel ? 'text-orange-600' : 'text-green-600'}`}>
+                          {item.quantity}
+                        </div>
+                        <p className="text-xs text-muted-foreground">in stock</p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className={`text-2xl font-bold ${item.quantity <= item.reorderLevel ? 'text-orange-600' : 'text-green-600'}`}>
-                        {item.quantity}
+                    
+                    <div className="flex items-center justify-between mt-3 pt-3 border-t">
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        {location}
                       </div>
-                      <p className="text-xs text-muted-foreground">in stock</p>
+                      {item.price > 0 && (
+                        <div className="text-xs font-medium text-blue-600">
+                          ₱{item.price.toLocaleString('en-PH')}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                  
-                  <div className="flex items-center justify-between mt-3 pt-3 border-t">
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                      {item.location}
-                    </div>
-                    {item.price > 0 && (
-                      <div className="text-xs font-medium text-blue-600">
-                        ₱{item.price.toLocaleString('en-PH')}
+
+                    {supplier && (
+                      <div className="mt-2 text-xs text-muted-foreground">
+                        Supplier: {supplier}
                       </div>
                     )}
                   </div>
-
-                  {item.supplier && (
-                    <div className="mt-2 text-xs text-muted-foreground">
-                      Supplier: {item.supplier}
-                    </div>
-                  )}
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
 
@@ -226,7 +237,6 @@ export default function StockTransactions({
             </div>
           </div>
 
-          {/* Search for transactions */}
           <div className="mt-4">
             <Input
               type="search"
@@ -259,25 +269,32 @@ export default function StockTransactions({
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredTransactions.map((transaction) => (
-                    <TableRow key={transaction.id}>
-                      <TableCell className="text-sm">{transaction.timestamp}</TableCell>
-                      <TableCell className="font-medium">{transaction.itemName}</TableCell>
-                      <TableCell>
-                        <Badge variant={transaction.transactionType === 'IN' ? 'success' : 'destructive'}>
-                          {transaction.transactionType}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <span className={transaction.transactionType === 'IN' ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
-                          {transaction.transactionType === 'IN' ? '+' : '-'}{transaction.quantity}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-sm">{transaction.reason}</TableCell>
-                      <TableCell className="text-sm">{transaction.userName}</TableCell>
-                      <TableCell className="font-medium">{transaction.stockAfter}</TableCell>
-                    </TableRow>
-                  ))
+                  filteredTransactions.map((transaction) => {
+                    const transType = transaction.transactionType || transaction.transaction_type
+                    const itemName = transaction.itemName || transaction.item_name
+                    const userName = transaction.userName || transaction.user_name
+                    const stockAfter = transaction.stockAfter || transaction.stock_after
+                    
+                    return (
+                      <TableRow key={transaction.id}>
+                        <TableCell className="text-sm">{transaction.timestamp}</TableCell>
+                        <TableCell className="font-medium">{itemName}</TableCell>
+                        <TableCell>
+                          <Badge variant={transType === 'IN' ? 'success' : 'destructive'}>
+                            {transType}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <span className={transType === 'IN' ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
+                            {transType === 'IN' ? '+' : '-'}{transaction.quantity}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-sm">{transaction.reason}</TableCell>
+                        <TableCell className="text-sm">{userName}</TableCell>
+                        <TableCell className="font-medium">{stockAfter}</TableCell>
+                      </TableRow>
+                    )
+                  })
                 )}
               </TableBody>
             </Table>

@@ -1,104 +1,93 @@
-
-
 import { useState, useEffect } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card'
 import { Badge } from './ui/badge'
 import { Button } from './ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
+import { authAPI } from '../lib/api'
 
 export default function Dashboard({ user, inventoryData, activityLogs, onNavigate, onLogActivity }) {
   const [isApprovalDialogOpen, setIsApprovalDialogOpen] = useState(false)
   const [pendingUsers, setPendingUsers] = useState([])
   const [approvedUsers, setApprovedUsers] = useState([])
+  const [isLoading, setIsLoading] = useState(false)
 
-  // Load users from localStorage
+  // Load users from database
   useEffect(() => {
-    const loadUsers = () => {
-      const savedPending = localStorage.getItem('pendingUsers')
-      const savedApproved = localStorage.getItem('approvedUsers')
-      
-      if (savedPending) setPendingUsers(JSON.parse(savedPending))
-      if (savedApproved) setApprovedUsers(JSON.parse(savedApproved))
+    if (user && user.role === 'Admin') {
+      loadUsers()
     }
-    
-    loadUsers()
-    
-    // Poll for changes every 2 seconds
-    const interval = setInterval(loadUsers, 2000)
-    return () => clearInterval(interval)
-  }, [])
+  }, [user])
 
-  // Save users to localStorage
-  useEffect(() => {
-    localStorage.setItem('pendingUsers', JSON.stringify(pendingUsers))
-  }, [pendingUsers])
-
-  useEffect(() => {
-    localStorage.setItem('approvedUsers', JSON.stringify(approvedUsers))
-  }, [approvedUsers])
-
-  const handleApproveUser = (userId) => {
-    const userToApprove = pendingUsers.find(u => u.id === userId)
-    if (userToApprove) {
-      const approvedUser = { ...userToApprove, status: 'approved' }
-      setApprovedUsers([...approvedUsers, approvedUser])
-      setPendingUsers(pendingUsers.filter(u => u.id !== userId))
-
-      //ADD TO ACTIVITY LOGS
-      if (onLogActivity) {
-        onLogActivity({
-          id: Date.now(),
-          itemName: `User Account: ${userToApprove.name}`,
-          action: 'Added',
-          userName: user.name,
-          userRole: user.role,
-          timestamp: new Date().toLocaleString('en-PH', {
-            month: '2-digit',
-            day: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
-          }),
-          details: `Approved staff account for ${userToApprove.name} (@${userToApprove.username})`
-        })
-      }
+  const loadUsers = async () => {
+    try {
+      setIsLoading(true)
+      const [pending, approved] = await Promise.all([
+        authAPI.getPendingUsers(),
+        authAPI.getApprovedUsers()
+      ])
+      setPendingUsers(pending)
+      setApprovedUsers(approved)
+    } catch (error) {
+      console.error('Error loading users:', error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  const handleRejectUser = (userId) => {
-    const userToReject = pendingUsers.find(u => u.id === userId)
-    if (userToReject) {
-      if (window.confirm(`Are you sure you want to reject ${userToReject.name}'s signup request?`)) {
-        setPendingUsers(pendingUsers.filter(u => u.id !== userId))
-
-        //ADD TO ACTIVITY LOGS
-        if (onLogActivity) {
-          onLogActivity({
-            id: Date.now(),
-            itemName: `User Account: ${userToReject.name}`,
-            action: 'Deleted',
-            userName: user.name,
-            userRole: user.role,
-            timestamp: new Date().toLocaleString('en-PH', {
-              month: '2-digit',
-              day: '2-digit',
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-              hour12: true
-            }),
-            details: `Rejected staff signup request from ${userToReject.name} (@${userToReject.username})`
-          })
-        }
+  const handleApproveUser = async (userId) => {
+    try {
+      await authAPI.approveUser(userId)
+      
+      const userToApprove = pendingUsers.find(u => u.id === userId)
+      if (userToApprove && onLogActivity) {
+        await onLogActivity(
+          `User Account: ${userToApprove.name}`,
+          'Added',
+          `Approved staff account for ${userToApprove.name} (@${userToApprove.username})`
+        )
       }
+      
+      // Reload users
+      await loadUsers()
+      alert('User approved successfully!')
+    } catch (error) {
+      console.error('Error approving user:', error)
+      alert('Failed to approve user: ' + error.message)
+    }
+  }
+
+  const handleRejectUser = async (userId) => {
+    const userToReject = pendingUsers.find(u => u.id === userId)
+    if (!userToReject) return
+    
+    if (!window.confirm(`Are you sure you want to reject ${userToReject.name}'s signup request?`)) {
+      return
+    }
+    
+    try {
+      await authAPI.rejectUser(userId)
+      
+      if (onLogActivity) {
+        await onLogActivity(
+          `User Account: ${userToReject.name}`,
+          'Deleted',
+          `Rejected staff signup request from ${userToReject.name} (@${userToReject.username})`
+        )
+      }
+      
+      // Reload users
+      await loadUsers()
+      alert('User rejected successfully!')
+    } catch (error) {
+      console.error('Error rejecting user:', error)
+      alert('Failed to reject user: ' + error.message)
     }
   }
 
   // Calculate statistics
   const totalItems = inventoryData.length
-  const lowStockItems = inventoryData.filter(item => item.quantity <= item.reorderLevel).length
-  const damagedItems = inventoryData.filter(item => item.damagedStatus === 'Damaged').length
+  const lowStockItems = inventoryData.filter(item => item.quantity <= item.reorderLevel || item.quantity <= item.reorder_level).length
+  const damagedItems = inventoryData.filter(item => item.damagedStatus === 'Damaged' || item.damaged_status === 'Damaged').length
   const totalValue = inventoryData.reduce((sum, item) => sum + (item.quantity * (item.price || 0)), 0)
 
   const recentActivities = activityLogs.slice(-5).reverse()
@@ -116,11 +105,13 @@ export default function Dashboard({ user, inventoryData, activityLogs, onNavigat
         </div>
         
         <div className="flex gap-2">
-          {/*Show approval button with badge */}
           {user.role === 'Admin' && (
             <Button 
               variant="outline"
-              onClick={() => setIsApprovalDialogOpen(true)}
+              onClick={() => {
+                setIsApprovalDialogOpen(true)
+                loadUsers()
+              }}
               className="relative"
             >
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -133,7 +124,6 @@ export default function Dashboard({ user, inventoryData, activityLogs, onNavigat
             </Button>
           )}
           
-          {/* Admin: Show "View Full Inventory" button */}
           {user.role === 'Admin' && (
             <Button variant="outline" onClick={() => onNavigate('inventory')}>
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -256,9 +246,9 @@ export default function Dashboard({ user, inventoryData, activityLogs, onNavigat
                   </div>
 
                   <div className="flex-1">
-                    <p className="font-medium">{log.itemName}</p>
+                    <p className="font-medium">{log.itemName || log.item_name}</p>
                     <p className="text-sm text-muted-foreground">
-                      {log.action} by {log.userName} • {log.timestamp}
+                      {log.action} by {log.userName || log.user_name} • {log.timestamp}
                     </p>
                     {log.details && (
                       <p className="text-sm text-muted-foreground mt-1">{log.details}</p>
@@ -279,7 +269,7 @@ export default function Dashboard({ user, inventoryData, activityLogs, onNavigat
         </CardContent>
       </Card>
 
-      {/* APPROVAL DIALOG */}
+      {/* User Approval Dialog */}
       <Dialog open={isApprovalDialogOpen} onOpenChange={setIsApprovalDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -290,7 +280,12 @@ export default function Dashboard({ user, inventoryData, activityLogs, onNavigat
           </DialogHeader>
 
           <div className="space-y-4 mt-4">
-            {pendingUsers.length === 0 ? (
+            {isLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="text-sm text-muted-foreground mt-2">Loading users...</p>
+              </div>
+            ) : pendingUsers.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
                 <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -316,7 +311,7 @@ export default function Dashboard({ user, inventoryData, activityLogs, onNavigat
                           <p><strong>Username:</strong> {pendingUser.username}</p>
                           <p><strong>Email:</strong> {pendingUser.email}</p>
                           <p><strong>Role:</strong> {pendingUser.role}</p>
-                          <p><strong>Signup Date:</strong> {pendingUser.signupDate}</p>
+                          <p><strong>Signup Date:</strong> {pendingUser.signupDate || pendingUser.signup_date}</p>
                         </div>
                       </div>
                       <div className="flex gap-2">

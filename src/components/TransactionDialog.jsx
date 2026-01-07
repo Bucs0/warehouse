@@ -1,4 +1,3 @@
-
 import { useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog'
 import { Input } from './ui/input'
@@ -13,6 +12,13 @@ export default function TransactionDialog({ open, onOpenChange, item, user, onTr
     quantity: '',
     reason: ''
   })
+
+  // Normalize item data
+  const itemName = item?.itemName || item?.item_name || ''
+  const category = item?.category || item?.categoryName || item?.category_name || ''
+  const location = item?.location || item?.locationName || item?.location_name || ''
+  const quantity = item?.quantity || 0
+  const reorderLevel = item?.reorderLevel || item?.reorder_level || 0
 
   const reasonsIN = [
     'Restock from supplier',
@@ -37,9 +43,9 @@ export default function TransactionDialog({ open, onOpenChange, item, user, onTr
   const calculateStockAfter = () => {
     const qty = parseInt(formData.quantity) || 0
     if (formData.transactionType === 'IN') {
-      return item.quantity + qty
+      return quantity + qty
     } else {
-      return item.quantity - qty
+      return quantity - qty
     }
   }
 
@@ -52,8 +58,8 @@ export default function TransactionDialog({ open, onOpenChange, item, user, onTr
       return
     }
 
-    if (formData.transactionType === 'OUT' && qty > item.quantity) {
-      alert(`Cannot remove ${qty} items. Only ${item.quantity} available in stock.`)
+    if (formData.transactionType === 'OUT' && qty > quantity) {
+      alert(`Cannot remove ${qty} items. Only ${quantity} available in stock.`)
       return
     }
 
@@ -65,7 +71,7 @@ export default function TransactionDialog({ open, onOpenChange, item, user, onTr
     const transaction = {
       id: Date.now(),
       itemId: item.id,
-      itemName: item.itemName,
+      itemName: itemName,
       transactionType: formData.transactionType,
       quantity: qty,
       reason: formData.reason,
@@ -79,7 +85,7 @@ export default function TransactionDialog({ open, onOpenChange, item, user, onTr
         minute: '2-digit',
         hour12: true
       }),
-      stockBefore: item.quantity,
+      stockBefore: quantity,
       stockAfter: calculateStockAfter()
     }
 
@@ -104,17 +110,17 @@ export default function TransactionDialog({ open, onOpenChange, item, user, onTr
 
         <div className="bg-gray-50 p-4 rounded-lg mb-4">
           <div className="flex items-center justify-between mb-2">
-            <h4 className="font-semibold">{item.itemName}</h4>
-            <Badge>{item.category}</Badge>
+            <h4 className="font-semibold">{itemName}</h4>
+            <Badge>{category}</Badge>
           </div>
           <div className="grid grid-cols-2 gap-2 text-sm">
             <div>
               <span className="text-muted-foreground">Current Stock:</span>
-              <span className="font-semibold ml-2">{item.quantity}</span>
+              <span className="font-semibold ml-2">{quantity}</span>
             </div>
             <div>
               <span className="text-muted-foreground">Location:</span>
-              <span className="font-semibold ml-2">{item.location}</span>
+              <span className="font-semibold ml-2">{location}</span>
             </div>
           </div>
         </div>
@@ -143,7 +149,7 @@ export default function TransactionDialog({ open, onOpenChange, item, user, onTr
                 id="quantity"
                 type="number"
                 min="1"
-                max={formData.transactionType === 'OUT' ? item.quantity : undefined}
+                max={formData.transactionType === 'OUT' ? quantity : undefined}
                 placeholder="Enter quantity"
                 value={formData.quantity}
                 onChange={(e) => handleChange('quantity', e.target.value)}
@@ -151,7 +157,7 @@ export default function TransactionDialog({ open, onOpenChange, item, user, onTr
               />
               {formData.transactionType === 'OUT' && (
                 <p className="text-xs text-muted-foreground">
-                  Maximum: {item.quantity} (current stock)
+                  Maximum: {quantity} (current stock)
                 </p>
               )}
             </div>
@@ -177,14 +183,14 @@ export default function TransactionDialog({ open, onOpenChange, item, user, onTr
               <div className="bg-blue-50 p-4 rounded-lg">
                 <p className="text-sm font-medium mb-2">Transaction Preview:</p>
                 <div className="flex items-center gap-2 text-sm">
-                  <span>Current: <strong>{item.quantity}</strong></span>
+                  <span>Current: <strong>{quantity}</strong></span>
                   <span className={formData.transactionType === 'IN' ? 'text-green-600' : 'text-red-600'}>
                     {formData.transactionType === 'IN' ? '+' : '-'}{formData.quantity}
                   </span>
                   <span>→</span>
-                  <span>After: <strong className={stockAfter <= item.reorderLevel ? 'text-orange-600' : ''}>{stockAfter}</strong></span>
+                  <span>After: <strong className={stockAfter <= reorderLevel ? 'text-orange-600' : ''}>{stockAfter}</strong></span>
                 </div>
-                {stockAfter <= item.reorderLevel && (
+                {stockAfter <= reorderLevel && (
                   <p className="text-xs text-orange-600 mt-2">
                     ⚠️ Warning: Stock will be at or below reorder level
                   </p>
