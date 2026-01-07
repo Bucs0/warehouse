@@ -1,28 +1,37 @@
+// ✅ UPDATED: Added data normalization for database compatibility
 
-// Admin: Full access | Staff: View only
-
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Badge } from './ui/badge'
 import AddCategoryDialog from './AddCategoryDialog'
 import EditCategoryDialog from './EditCategoryDialog'
+import { normalizeCategories } from '../lib/dataMapper'
 
 export default function CategoriesPage({ user, categories, inventoryData, onAddCategory, onEditCategory, onDeleteCategory }) {
   const [searchTerm, setSearchTerm] = useState('')
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [editingCategory, setEditingCategory] = useState(null)
 
+  // ✅ Normalize category data
+  const normalizedCategories = useMemo(() => 
+    normalizeCategories(categories), 
+    [categories]
+  )
+
   // Filter categories
-  const filteredCategories = categories.filter(category =>
+  const filteredCategories = normalizedCategories.filter(category =>
     category.categoryName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (category.description && category.description.toLowerCase().includes(searchTerm.toLowerCase()))
   )
 
   // Count items per category
   const getCategoryItemCount = (categoryName) => {
-    return inventoryData.filter(item => item.category === categoryName).length
+    return inventoryData.filter(item => {
+      const itemCategory = item.category_name || item.category
+      return itemCategory === categoryName
+    }).length
   }
 
   // Handle delete with confirmation
@@ -55,7 +64,7 @@ export default function CategoriesPage({ user, categories, inventoryData, onAddC
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Categories</p>
-                <h3 className="text-3xl font-bold mt-2">{categories.length}</h3>
+                <h3 className="text-3xl font-bold mt-2">{normalizedCategories.length}</h3>
               </div>
               <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
                 <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -88,7 +97,7 @@ export default function CategoriesPage({ user, categories, inventoryData, onAddC
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Avg. Items per Category</p>
                 <h3 className="text-3xl font-bold text-green-600 mt-2">
-                  {categories.length > 0 ? Math.round(inventoryData.length / categories.length) : 0}
+                  {normalizedCategories.length > 0 ? Math.round(inventoryData.length / normalizedCategories.length) : 0}
                 </h3>
               </div>
               <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
@@ -195,7 +204,7 @@ export default function CategoriesPage({ user, categories, inventoryData, onAddC
 
           {filteredCategories.length > 0 && (
             <p className="text-sm text-muted-foreground mt-4">
-              Showing {filteredCategories.length} of {categories.length} categories
+              Showing {filteredCategories.length} of {normalizedCategories.length} categories
             </p>
           )}
         </CardContent>
@@ -206,7 +215,7 @@ export default function CategoriesPage({ user, categories, inventoryData, onAddC
         open={isAddDialogOpen}
         onOpenChange={setIsAddDialogOpen}
         onAdd={onAddCategory}
-        existingCategories={categories}
+        existingCategories={normalizedCategories}
       />
 
       {/* Edit Category Dialog */}
@@ -217,7 +226,7 @@ export default function CategoriesPage({ user, categories, inventoryData, onAddC
           category={editingCategory}
           onEdit={onEditCategory}
           isReadOnly={user.role !== 'Admin'}
-          existingCategories={categories}
+          existingCategories={normalizedCategories}
         />
       )}
     </div>
