@@ -1,4 +1,4 @@
-// ✅ FIXED AddItemDialog.jsx - Shows proper location names
+// ✅ FIXED AddItemDialog.jsx
 
 import { useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog'
@@ -17,7 +17,7 @@ export default function AddItemDialog({
 }) {
   const [formData, setFormData] = useState({
     itemName: '',
-    category: 'Office Supplies',
+    category: '',
     quantity: '',
     location: '',
     reorderLevel: '10',
@@ -25,6 +25,14 @@ export default function AddItemDialog({
     supplierId: '',
     supplier: ''
   })
+
+  // Set default category when categories load
+  useState(() => {
+    if (categories.length > 0 && !formData.category) {
+      const firstCategory = categories[0].categoryName || categories[0].category_name
+      setFormData(prev => ({ ...prev, category: firstCategory }))
+    }
+  }, [categories])
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -48,26 +56,47 @@ export default function AddItemDialog({
   }
 
   const handleSubmit = () => {
-    if (!formData.itemName || !formData.quantity || !formData.location) {
-      alert('Please fill in all required fields (Item Name, Quantity, Location)')
+    // ✅ Validate required fields
+    if (!formData.itemName || !formData.itemName.trim()) {
+      alert('Please enter an item name')
       return
     }
 
+    if (!formData.quantity || parseInt(formData.quantity) < 0) {
+      alert('Please enter a valid quantity')
+      return
+    }
+
+    if (!formData.location) {
+      alert('Please select a location')
+      return
+    }
+
+    if (!formData.category) {
+      alert('Please select a category')
+      return
+    }
+
+    // ✅ Create clean item object - NO dateAdded here, backend handles it
     const newItem = {
-      id: Date.now(),
-      ...formData,
+      itemName: formData.itemName.trim(),
+      category: formData.category,
       quantity: parseInt(formData.quantity) || 0,
+      location: formData.location,
       reorderLevel: parseInt(formData.reorderLevel) || 10,
       price: parseFloat(formData.price) || 0,
-      damagedStatus: 'Good',
-      dateAdded: new Date().toLocaleDateString('en-PH')
+      supplierId: formData.supplierId || null,
+      supplier: formData.supplier
     }
+
+    console.log('📤 Submitting new item:', newItem)
 
     onAdd(newItem)
 
+    // Reset form
     setFormData({
       itemName: '',
-      category: 'Office Supplies',
+      category: categories.length > 0 ? (categories[0].categoryName || categories[0].category_name) : '',
       quantity: '',
       location: '',
       reorderLevel: '10',
@@ -100,12 +129,16 @@ export default function AddItemDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="category">Category</Label>
+            <Label htmlFor="category">
+              Category <span className="text-red-500">*</span>
+            </Label>
             <Select
               id="category"
               value={formData.category}
               onChange={(e) => handleChange('category', e.target.value)}
+              required
             >
+              <option value="">Select Category...</option>
               {categories && categories.length > 0 ? (
                 categories.map(cat => {
                   const categoryName = cat.categoryName || cat.category_name || 'Unknown'
@@ -128,13 +161,13 @@ export default function AddItemDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="supplier">Supplier</Label>
+            <Label htmlFor="supplier">Supplier (Optional)</Label>
             <Select
               id="supplier"
               value={formData.supplierId}
               onChange={(e) => handleSupplierChange(e.target.value)}
             >
-              <option value="">Select Supplier (Optional)...</option>
+              <option value="">Select Supplier...</option>
               {suppliers
                 .filter(s => s.isActive || s.is_active)
                 .map(supplier => {
@@ -190,7 +223,6 @@ export default function AddItemDialog({
               >
                 <option value="">Select Location...</option>
                 {locations.map(location => {
-                  // ✅ FIX: Get the proper location name
                   const locationName = location.locationName || location.location_name || 'Unknown Location'
                   const description = location.description || ''
                   
