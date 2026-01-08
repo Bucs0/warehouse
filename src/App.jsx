@@ -26,7 +26,12 @@ import { sendLowStockAlert } from './lib/emailService'
 const ADMIN_EMAIL = 'markjadebucao10@gmail.com'
 
 export default function App() {
-  const [currentUser, setCurrentUser] = useState(null)
+  const [currentUser, setCurrentUser] = useState(() => {
+    // Try to load user from sessionStorage on app initialization
+    // sessionStorage is tab-specific, so each tab can have its own session
+    const savedUser = sessionStorage.getItem('currentUser')
+    return savedUser ? JSON.parse(savedUser) : null
+  })
   const [currentPage, setCurrentPage] = useState('dashboard')
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   
@@ -154,11 +159,13 @@ export default function App() {
 
   const handleLogin = (user) => {
     setCurrentUser(user)
+    sessionStorage.setItem('currentUser', JSON.stringify(user))
     setCurrentPage('dashboard')
   }
 
   const handleLogout = () => {
     setCurrentUser(null)
+    sessionStorage.removeItem('currentUser')
     setCurrentPage('dashboard')
   }
 
