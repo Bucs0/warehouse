@@ -20,6 +20,7 @@ export default function SuppliersPage({
   onAddSupplier, 
   onEditSupplier, 
   onDeleteSupplier,
+  onUpdateSupplierItems,
   onAddItem
 }) {
   const [searchTerm, setSearchTerm] = useState('')
@@ -27,12 +28,13 @@ export default function SuppliersPage({
   const [editingSupplier, setEditingSupplier] = useState(null)
   const [filterStatus, setFilterStatus] = useState('all')
   
-  // States for handling new items
+  // States for handling new items (for both add and edit)
   const [pendingNewItems, setPendingNewItems] = useState([])
   const [currentNewItemIndex, setCurrentNewItemIndex] = useState(0)
   const [isNewItemDialogOpen, setIsNewItemDialogOpen] = useState(false)
   const [pendingSupplierData, setPendingSupplierData] = useState(null)
   const [createdItemIds, setCreatedItemIds] = useState([])
+  const [isEditingMode, setIsEditingMode] = useState(false) // Track if we're editing or adding
 
   // ✅ Normalize supplier data
   const normalizedSuppliers = useMemo(() => 
@@ -82,6 +84,7 @@ export default function SuppliersPage({
       setPendingNewItems(supplierData.newItems)
       setCurrentNewItemIndex(0)
       setCreatedItemIds([])
+      setIsEditingMode(false) // Adding new supplier
       setIsNewItemDialogOpen(true)
     } else {
       const finalSupplier = {
@@ -99,13 +102,30 @@ export default function SuppliersPage({
     }
   }
 
-  const handleNewItemComplete = (itemData) => {
+  // ✅ NEW: Handle editing supplier with new items
+  const handleEditSupplierWithItems = (supplierData) => {
+    if (supplierData.newItems && supplierData.newItems.length > 0) {
+      // Store pending data and trigger new item dialog
+      setPendingSupplierData(supplierData)
+      setPendingNewItems(supplierData.newItems)
+      setCurrentNewItemIndex(0)
+      setCreatedItemIds([])
+      setIsEditingMode(true) // Editing existing supplier
+      setIsNewItemDialogOpen(true)
+    } else {
+      // No new items, just update supplier
+      onEditSupplier(supplierData)
+    }
+  }
+
+  const handleNewItemComplete = async (itemData) => {
     const itemName = pendingNewItems[currentNewItemIndex]
     
     console.log('📦 SuppliersPage - handleNewItemComplete:', {
       itemName,
       itemData,
-      pendingSupplierData
+      pendingSupplierData,
+      isEditingMode
     })
     
     // ✅ Structure the item data correctly for handleAddItem
@@ -116,14 +136,15 @@ export default function SuppliersPage({
       location: itemData.location,
       reorderLevel: itemData.reorderLevel || 10,
       price: itemData.price || 0,
-      supplierId: null, // Will be set later when supplier is created
+      // ✅ Set supplierId if editing existing supplier
+      supplierId: isEditingMode ? pendingSupplierData.id : null,
       damagedStatus: 'Good',
       dateAdded: new Date().toISOString().split('T')[0]
     }
     
     console.log('📤 Calling onAddItem with:', newItem)
     
-    onAddItem(newItem)
+    await onAddItem(newItem)
     
     // Store the item name for linking to supplier later
     setCreatedItemIds(prev => [...prev, itemName])
@@ -131,25 +152,32 @@ export default function SuppliersPage({
     if (currentNewItemIndex < pendingNewItems.length - 1) {
       setCurrentNewItemIndex(currentNewItemIndex + 1)
     } else {
-      // Create supplier after all items are added
-      const finalSupplier = {
-        supplierName: pendingSupplierData.supplierName,
-        contactPerson: pendingSupplierData.contactPerson,
-        contactEmail: pendingSupplierData.contactEmail,
-        contactPhone: pendingSupplierData.contactPhone,
-        address: pendingSupplierData.address,
-        isActive: pendingSupplierData.isActive
+      // All items added - now create or update supplier
+      if (isEditingMode) {
+        // Update existing supplier
+        console.log('✅ All items added, updating supplier:', pendingSupplierData)
+        await onEditSupplier(pendingSupplierData)
+      } else {
+        // Create new supplier
+        const finalSupplier = {
+          supplierName: pendingSupplierData.supplierName,
+          contactPerson: pendingSupplierData.contactPerson,
+          contactEmail: pendingSupplierData.contactEmail,
+          contactPhone: pendingSupplierData.contactPhone,
+          address: pendingSupplierData.address,
+          isActive: pendingSupplierData.isActive
+        }
+        
+        console.log('✅ All items added, creating supplier:', finalSupplier)
+        await onAddSupplier(finalSupplier)
       }
-      
-      console.log('✅ All items added, creating supplier:', finalSupplier)
-      
-      onAddSupplier(finalSupplier)
       
       setIsNewItemDialogOpen(false)
       setPendingNewItems([])
       setCurrentNewItemIndex(0)
       setPendingSupplierData(null)
       setCreatedItemIds([])
+      setIsEditingMode(false)
     }
   }
 
@@ -362,7 +390,9 @@ export default function SuppliersPage({
           open={!!editingSupplier}
           onOpenChange={(open) => !open && setEditingSupplier(null)}
           supplier={editingSupplier}
-          onEdit={onEditSupplier}
+          inventoryData={inventoryData}
+          onEdit={handleEditSupplierWithItems}
+          onUpdateSupplierItems={onUpdateSupplierItems}
           isReadOnly={user.role !== 'Admin'}
         />
       )}

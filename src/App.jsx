@@ -361,13 +361,15 @@ export default function App() {
         `${action} (${transaction.stockBefore} → ${transaction.stockAfter}) - ${transaction.reason}`
       )
       
-      // Reload data
-      const [inventory, trans] = await Promise.all([
+      // ✅ FIXED: Reload damaged items after transaction
+      const [inventory, trans, damaged] = await Promise.all([
         inventoryAPI.getAll(),
-        transactionsAPI.getAll()
+        transactionsAPI.getAll(),
+        damagedItemsAPI.getAll()
       ])
       setInventoryData(inventory)
       setTransactionHistory(trans)
+      setDamagedItems(damaged)
       
       // If item was restocked above reorder level, clear low stock alert
       const item = inventory.find(i => i.id === transaction.itemId)
@@ -566,9 +568,66 @@ export default function App() {
       
       const sups = await suppliersAPI.getAll()
       setSuppliers(sups)
+      
+      // ✅ Reload inventory to show updated supplier assignments
+      const inventory = await inventoryAPI.getAll()
+      setInventoryData(inventory)
     } catch (error) {
       console.error('Error editing supplier:', error)
       alert('Failed to edit supplier: ' + error.message)
+    }
+  }
+
+  // ✅ NEW: Handler to update supplier-item assignments
+  const handleUpdateSupplierItems = async (supplierId, selectedItemIds) => {
+    try {
+      console.log('📦 Updating supplier items:', { supplierId, selectedItemIds })
+      
+      // Update all items: assign selected items to this supplier, unassign others
+      const updatePromises = inventoryData.map(async (item) => {
+        const shouldBeAssigned = selectedItemIds.includes(item.id)
+        const currentlyAssigned = item.supplierId === supplierId || item.supplier_id === supplierId
+        
+        // Only update if assignment status changed
+        if (shouldBeAssigned !== currentlyAssigned) {
+          // Find category and location IDs
+          const category = categories.find(c => 
+            c.category_name === item.category || c.categoryName === item.category
+          )
+          const location = locations.find(l => 
+            l.location_name === item.location || l.locationName === item.location
+          )
+          
+          return inventoryAPI.update(item.id, {
+            itemName: item.item_name || item.itemName,
+            categoryId: category?.id,
+            quantity: item.quantity,
+            locationId: location?.id,
+            reorderLevel: item.reorder_level || item.reorderLevel,
+            price: item.price,
+            supplierId: shouldBeAssigned ? supplierId : null,
+            damagedStatus: item.damaged_status || item.damagedStatus || 'Good'
+          })
+        }
+      })
+      
+      await Promise.all(updatePromises.filter(Boolean))
+      
+      console.log('✅ Supplier items updated successfully')
+      
+      // Reload inventory to reflect changes
+      const inventory = await inventoryAPI.getAll()
+      setInventoryData(inventory)
+      
+      const supplier = suppliers.find(s => s.id === supplierId)
+      await addActivityLog(
+        supplier?.supplier_name || supplier?.supplierName || 'Supplier',
+        'Edited',
+        `Updated item assignments: ${selectedItemIds.length} items assigned`
+      )
+    } catch (error) {
+      console.error('❌ Error updating supplier items:', error)
+      alert('Failed to update supplier items: ' + error.message)
     }
   }
 
@@ -961,6 +1020,7 @@ export default function App() {
             onAddSupplier={handleAddSupplier}
             onEditSupplier={handleEditSupplier}
             onDeleteSupplier={handleDeleteSupplier}
+            onUpdateSupplierItems={handleUpdateSupplierItems}
             onAddItem={handleAddItem}
           />
         )}

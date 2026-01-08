@@ -1,11 +1,12 @@
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog'
 import { Input } from './ui/input'
 import { Label } from './ui/label'
 import { Select } from './ui/select'
 import { Button } from './ui/button'
 import { Badge } from './ui/badge'
+import { normalizeInventoryItems, normalizeSuppliers } from '../lib/dataMapper'
 
 export default function ScheduleAppointmentDialog({ 
   open, 
@@ -30,13 +31,31 @@ export default function ScheduleAppointmentDialog({
   const [selectedItemId, setSelectedItemId] = useState('')
   const [itemQuantity, setItemQuantity] = useState('')
 
+  // ✅ Normalize data to handle both snake_case and camelCase
+  const normalizedSuppliers = useMemo(() => 
+    normalizeSuppliers(suppliers || []),
+    [suppliers]
+  )
+
+  const normalizedInventory = useMemo(() => 
+    normalizeInventoryItems(inventoryData || []),
+    [inventoryData]
+  )
+
+  console.log('📦 ScheduleAppointment - Data:', {
+    suppliers: { raw: suppliers?.length, normalized: normalizedSuppliers?.length },
+    inventory: { raw: inventoryData?.length, normalized: normalizedInventory?.length },
+    selectedSupplierId: formData.supplierId
+  })
+
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
   const handleSupplierChange = (supplierId) => {
-    const supplier = suppliers.find(s => s.id === parseInt(supplierId))
+    const supplier = normalizedSuppliers.find(s => s.id === parseInt(supplierId))
     if (supplier) {
+      console.log('🏪 Selected supplier:', supplier)
       setFormData(prev => ({
         ...prev,
         supplierId: supplier.id,
@@ -50,8 +69,19 @@ export default function ScheduleAppointmentDialog({
   }
 
   const supplierItems = formData.supplierId 
-    ? inventoryData.filter(item => item.supplierId === formData.supplierId)
+    ? normalizedInventory.filter(item => {
+        const match = item.supplierId === formData.supplierId
+        if (match) {
+          console.log('✅ Item matches supplier:', item.itemName, 'supplierId:', item.supplierId)
+        }
+        return match
+      })
     : []
+
+  console.log('📊 Supplier items for supplier', formData.supplierId, ':', supplierItems.length, 'items')
+  if (supplierItems.length > 0) {
+    console.log('🔹 Sample item:', supplierItems[0])
+  }
 
   // ✅ FIX: Rewritten handleAddItem to use state properly
   const handleAddItem = () => {
@@ -68,8 +98,9 @@ export default function ScheduleAppointmentDialog({
       return
     }
 
-    const item = inventoryData.find(i => i.id === itemId)
+    const item = normalizedInventory.find(i => i.id === itemId)
     if (item) {
+      console.log('✅ Adding item to appointment:', item)
       setSelectedItems(prev => [...prev, {
         itemId: item.id,
         itemName: item.itemName,
@@ -101,12 +132,12 @@ export default function ScheduleAppointmentDialog({
       return
     }
 
+    // ✅ UPDATED: Block scheduling appointments in the past
     const selectedDate = new Date(`${formData.date}T${formData.time}`)
     const now = new Date()
     if (selectedDate < now) {
-      if (!window.confirm('The selected date/time is in the past. Continue anyway?')) {
-        return
-      }
+      alert('Cannot schedule appointments in the past. Please select a future date and time.')
+      return
     }
 
     const newAppointment = {
@@ -160,11 +191,11 @@ export default function ScheduleAppointmentDialog({
                 required
               >
                 <option value="">Select Supplier...</option>
-                {suppliers
+                {normalizedSuppliers
                   .filter(s => s.isActive)
                   .map(supplier => (
                     <option key={supplier.id} value={supplier.id}>
-                      {supplier.supplierName} - {supplier.contactPerson}
+                      {supplier.supplierName} - {supplier.contactEmail}
                     </option>
                   ))
                 }

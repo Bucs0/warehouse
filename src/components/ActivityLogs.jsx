@@ -329,7 +329,7 @@ export default function ActivityLogs({ activityLogs, currentUser }) {
                   filteredLogs.map((log, index) => (
                     <TableRow key={log.id}>
                       <TableCell className="font-medium text-muted-foreground">
-                        {filteredLogs.length - index}
+                        {index + 1}
                       </TableCell>
                       <TableCell className="font-medium">{log.itemName}</TableCell>
                       <TableCell>

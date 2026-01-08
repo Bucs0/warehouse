@@ -18,7 +18,7 @@ export default function StockTransactions({
   const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false)
   const [selectedItem, setSelectedItem] = useState(null)
 
-  // Filter transactions
+  // Filter transactions (backend already returns newest first)
   const filteredTransactions = transactionHistory.filter(transaction => {
     const itemName = transaction.itemName || transaction.item_name || ''
     const userName = transaction.userName || transaction.user_name || ''
@@ -31,7 +31,7 @@ export default function StockTransactions({
     const matchesType = filterType === 'all' || transaction.transactionType === filterType || transaction.transaction_type === filterType
 
     return matchesSearch && matchesType
-  }).reverse()
+  })
 
   // Filter items for transaction
   const filteredItems = inventoryData.filter(item => {

@@ -106,6 +106,14 @@ export default function EditAppointmentDialog({
       return
     }
 
+    // ✅ ADDED: Block editing appointments to past date/time
+    const selectedDate = new Date(`${formData.date}T${formData.time}`)
+    const now = new Date()
+    if (selectedDate < now) {
+      alert('Cannot schedule appointments in the past. Please select a future date and time.')
+      return
+    }
+
     const updatedAppointment = {
       ...appointment,
       ...formData,

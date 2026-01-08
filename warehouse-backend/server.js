@@ -742,6 +742,16 @@ app.post('/api/transactions', async (req, res) => {
       stockAfter 
     } = req.body;
     
+    console.log('📥 Transaction request:', {
+      itemId,
+      transactionType,
+      quantity,
+      reason,
+      userId,
+      stockBefore,
+      stockAfter
+    });
+    
     await connection.query(
       `INSERT INTO stock_transactions 
        (item_id, transaction_type, quantity, reason, user_id, stock_before, stock_after) 
@@ -754,28 +764,39 @@ app.post('/api/transactions', async (req, res) => {
       [stockAfter, itemId]
     );
     
+    // ✅ ENHANCED: Better logging for damaged item creation
     if (transactionType === 'OUT' && reason === 'Damaged/Discarded') {
+      console.log('🔴 Damaged item detected! Creating entry...');
+      
       const [item] = await connection.query(
         'SELECT * FROM inventory_items WHERE id = ?',
         [itemId]
       );
       
       if (item.length > 0) {
-        await connection.query(
+        console.log('✅ Item found, inserting into damaged_items table');
+        
+        const result = await connection.query(
           `INSERT INTO damaged_items 
            (item_id, quantity, reason, status, date_damaged) 
            VALUES (?, ?, ?, 'Standby', CURDATE())`,
           [itemId, quantity, reason]
         );
+        
+        console.log('✅ Damaged item created with ID:', result[0].insertId);
+      } else {
+        console.error('❌ Item not found with ID:', itemId);
       }
     }
     
     await connection.commit();
+    console.log('✅ Transaction completed successfully');
     res.json({ message: 'Transaction recorded successfully' });
   } catch (error) {
     await connection.rollback();
-    console.error('Transaction error:', error);
-    res.status(500).json({ error: 'Server error' });
+    console.error('❌ Transaction error:', error);
+    console.error('❌ Stack trace:', error.stack);
+    res.status(500).json({ error: 'Server error', details: error.message });
   } finally {
     connection.release();
   }

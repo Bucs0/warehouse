@@ -97,7 +97,8 @@ export default function Dashboard({ user, inventoryData, activityLogs, onNavigat
     [activityLogs]
   )
 
-  const recentActivities = normalizedLogs.slice(-10).reverse()
+  // ✅ FIXED: Show most recent activities first (backend already sorted DESC)
+  const recentActivities = normalizedLogs.slice(0, 10)
 
   useEffect(() => {
     console.log('🔄 Dashboard received activity logs update:', {
