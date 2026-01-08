@@ -995,20 +995,19 @@ export default function App() {
         {/* Manage Inventory Page */}
         {currentPage === 'inventory' && currentUser.role === 'Admin' && (
           <InventoryTable
-              user={currentUser}
-              inventoryData={inventoryData}
-              suppliers={suppliers}
-              categories={categories}
-              locations={locations}
-              onAddItem={handleAddItem}
-              onEditItem={handleEditItem}
-              onDeleteItem={handleDeleteItem}
-              onAddLocation={handleAddLocation}
-              onEditLocation={handleEditLocation}
-              onDeleteLocation={handleDeleteLocation}
-            />
-          )
-        })()
+            user={currentUser}
+            inventoryData={inventoryData}
+            suppliers={suppliers}
+            categories={categories}
+            locations={locations}
+            onAddItem={handleAddItem}
+            onEditItem={handleEditItem}
+            onDeleteItem={handleDeleteItem}
+            onAddLocation={handleAddLocation}
+            onEditLocation={handleEditLocation}
+            onDeleteLocation={handleDeleteLocation}
+          />
+        )}
 
         {currentPage === 'suppliers' && (
           <SuppliersPage

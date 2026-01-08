@@ -188,10 +188,10 @@ export default function AppointmentsPage({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Appointment Scheduling</h1>
-          <p className="text-muted-foreground mt-1">
-            Schedule and manage restock appointments with suppliers
-          </p>
+        <h1 className="text-3xl font-bold">Appointment Scheduling</h1>
+        <p className="text-muted-foreground mt-1">
+        Schedule and manage restock appointments with suppliers
+        </p>
         </div>
 
         <div className="flex items-center gap-2">
