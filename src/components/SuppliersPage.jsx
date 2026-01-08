@@ -187,19 +187,19 @@ export default function SuppliersPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Supplier Management</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold">Supplier Management</h1>
         <p className="text-muted-foreground mt-1">
           Manage supplier information and contacts
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Suppliers</p>
-                <h3 className="text-3xl font-bold mt-2">{normalizedSuppliers.length}</h3>
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground">Total Suppliers</p>
+                <h3 className="text-2xl sm:text-3xl font-bold mt-2">{normalizedSuppliers.length}</h3>
               </div>
               <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                 <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -214,8 +214,8 @@ export default function SuppliersPage({
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Active Suppliers</p>
-                <h3 className="text-3xl font-bold text-green-600 mt-2">{activeSuppliers}</h3>
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground">Active Suppliers</p>
+                <h3 className="text-2xl sm:text-3xl font-bold text-green-600 mt-2">{activeSuppliers}</h3>
               </div>
               <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
                 <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -230,8 +230,8 @@ export default function SuppliersPage({
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Inactive Suppliers</p>
-                <h3 className="text-3xl font-bold text-gray-600 mt-2">{inactiveSuppliers}</h3>
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground">Inactive Suppliers</p>
+                <h3 className="text-2xl sm:text-3xl font-bold text-gray-600 mt-2">{inactiveSuppliers}</h3>
               </div>
               <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
                 <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -245,8 +245,8 @@ export default function SuppliersPage({
 
       <Card>
         <CardHeader>
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <CardTitle>Suppliers List</CardTitle>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <CardTitle className="text-xl sm:text-2xl">Suppliers List</CardTitle>
             
             {user.role === 'Admin' && (
               <Button onClick={() => setIsAddDialogOpen(true)}>
@@ -258,7 +258,7 @@ export default function SuppliersPage({
             )}
           </div>
 
-          <div className="flex flex-col md:flex-row gap-4 mt-4">
+          <div className="flex flex-col sm:flex-row gap-4 mt-4">
             <div className="flex-1 relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -301,7 +301,8 @@ export default function SuppliersPage({
         </CardHeader>
 
         <CardContent>
-          <div className="rounded-md border">
+          {/* Desktop Table View */}
+          <div className="hidden md:block rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -373,6 +374,85 @@ export default function SuppliersPage({
                 )}
               </TableBody>
             </Table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-4">
+            {filteredSuppliers.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                {searchTerm || filterStatus !== 'all'
+                  ? 'No suppliers found matching filters'
+                  : 'No suppliers yet. Add your first supplier to get started.'
+                }
+              </div>
+            ) : (
+              filteredSuppliers.map((supplier) => (
+                <Card key={supplier.id} className="p-4">
+                  <div className="space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-lg">{supplier.supplierName}</h3>
+                        <p className="text-sm text-muted-foreground">{supplier.contactPerson}</p>
+                      </div>
+                      <Badge variant={supplier.isActive ? 'success' : 'secondary'}>
+                        {supplier.isActive ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </div>
+                    
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        {supplier.contactEmail ? (
+                          <a href={`mailto:${supplier.contactEmail}`} className="text-blue-600 hover:underline truncate">
+                            {supplier.contactEmail}
+                          </a>
+                        ) : (
+                          <span className="text-muted-foreground">No email</span>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                        </svg>
+                        <span>{supplier.contactPhone || 'N/A'}</span>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                        </svg>
+                        <Badge variant="outline">{getSupplierItemCount(supplier.id)} items</Badge>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-2 pt-2 border-t">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setEditingSupplier(supplier)}
+                        className="flex-1"
+                      >
+                        {user.role === 'Admin' ? 'Edit' : 'View'}
+                      </Button>
+                      
+                      {user.role === 'Admin' && (
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleDelete(supplier)}
+                          className="flex-1"
+                        >
+                          Delete
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              ))
+            )}
           </div>
 
           {filteredSuppliers.length > 0 && (

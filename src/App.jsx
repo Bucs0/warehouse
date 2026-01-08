@@ -29,6 +29,7 @@ const ADMIN_EMAIL = 'markjadebucao10@gmail.com'
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null)
   const [currentPage, setCurrentPage] = useState('dashboard')
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   
   // State for all data
   const [inventoryData, setInventoryData] = useState([])
@@ -835,8 +836,48 @@ export default function App() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
+      {/* Mobile Header */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            </svg>
+          </div>
+          <div>
+            <h2 className="font-bold text-sm">Warehouse</h2>
+            <p className="text-xs text-muted-foreground">Inventory System</p>
+          </div>
+        </div>
+        <button
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {isMobileMenuOpen ? (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            )}
+          </svg>
+        </button>
+      </div>
+
+      {/* Mobile Menu Overlay */}
+      {isMobileMenuOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black/50 z-40"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Sidebar Navigation */}
-      <aside className="w-64 bg-white border-r border-gray-200 fixed h-screen overflow-y-auto">
+      <aside className={`
+        w-64 bg-white border-r border-gray-200 fixed h-screen overflow-y-auto z-50
+        transition-transform duration-300 ease-in-out
+        lg:translate-x-0
+        ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+      `}>
         <div className="p-6">
           {/* Logo/Brand */}
           <div className="flex items-center gap-3 mb-8">
@@ -860,7 +901,10 @@ export default function App() {
           {/* Navigation Menu */}
           <nav className="space-y-2">
             <button
-              onClick={() => handleNavigate('dashboard')}
+              onClick={() => {
+                handleNavigate('dashboard')
+                setIsMobileMenuOpen(false)
+              }}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                 currentPage === 'dashboard' ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-100'
               }`}
@@ -872,7 +916,10 @@ export default function App() {
             </button>
 
             <button
-              onClick={() => handleNavigate('transactions')}
+              onClick={() => {
+                handleNavigate('transactions')
+                setIsMobileMenuOpen(false)
+              }}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                 currentPage === 'transactions' ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-100'
               }`}
@@ -885,7 +932,10 @@ export default function App() {
 
             {currentUser.role === 'Admin' && (
               <button
-                onClick={() => handleNavigate('inventory')}
+                onClick={() => {
+                  handleNavigate('inventory')
+                  setIsMobileMenuOpen(false)
+                }}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                   currentPage === 'inventory' ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-100'
                 }`}
@@ -898,7 +948,10 @@ export default function App() {
             )}
 
             <button
-              onClick={() => handleNavigate('suppliers')}
+              onClick={() => {
+                handleNavigate('suppliers')
+                setIsMobileMenuOpen(false)
+              }}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                 currentPage === 'suppliers' ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-100'
               }`}
@@ -910,7 +963,10 @@ export default function App() {
             </button>
 
             <button
-              onClick={() => handleNavigate('categories')}
+              onClick={() => {
+                handleNavigate('categories')
+                setIsMobileMenuOpen(false)
+              }}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                 currentPage === 'categories' ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-100'
               }`}
@@ -922,7 +978,10 @@ export default function App() {
             </button>
 
             <button
-              onClick={() => handleNavigate('appointments')}
+              onClick={() => {
+                handleNavigate('appointments')
+                setIsMobileMenuOpen(false)
+              }}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                 currentPage === 'appointments' ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-100'
               }`}
@@ -934,7 +993,10 @@ export default function App() {
             </button>
 
             <button
-              onClick={() => handleNavigate('damaged')}
+              onClick={() => {
+                handleNavigate('damaged')
+                setIsMobileMenuOpen(false)
+              }}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                 currentPage === 'damaged' ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-100'
               }`}
@@ -946,7 +1008,10 @@ export default function App() {
             </button>
 
             <button
-              onClick={() => handleNavigate('logs')}
+              onClick={() => {
+                handleNavigate('logs')
+                setIsMobileMenuOpen(false)
+              }}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                 currentPage === 'logs' ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-100'
               }`}
@@ -972,7 +1037,7 @@ export default function App() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 ml-64 p-8">
+      <main className="flex-1 lg:ml-64 p-4 sm:p-6 md:p-8 pt-20 lg:pt-8">
         {currentPage === 'dashboard' && (
           <Dashboard
             user={currentUser}

@@ -105,9 +105,9 @@ export default function ActivityLogs({ activityLogs, currentUser }) {
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <CardTitle>Activity Logs</CardTitle>
+              <CardTitle className="text-xl sm:text-2xl">Activity Logs</CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
                 Complete history of all changes in the system
               </p>
@@ -116,7 +116,7 @@ export default function ActivityLogs({ activityLogs, currentUser }) {
             {/* Export button*/}
             <Button 
               onClick={() => setIsExportDialogOpen(true)}
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-green-600 hover:bg-green-700 w-full sm:w-auto"
             >
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -126,7 +126,7 @@ export default function ActivityLogs({ activityLogs, currentUser }) {
           </div>
 
           {/* Month and Year Filter Row */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Filter by Month</label>
               <Select
@@ -173,7 +173,7 @@ export default function ActivityLogs({ activityLogs, currentUser }) {
           </div>
 
           {/* Search and action filter row */}
-          <div className="flex flex-col md:flex-row gap-4 mt-4">
+          <div className="flex flex-col sm:flex-row gap-4 mt-4">
             <div className="flex-1 relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -250,12 +250,12 @@ export default function ActivityLogs({ activityLogs, currentUser }) {
 
         <CardContent>
           {/* Stats cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <div className="p-4 rounded-lg bg-green-50 border border-green-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-green-600 font-medium">Items Added</p>
-                  <p className="text-2xl font-bold text-green-900 mt-1">{totalActionCounts.Added}</p>
+                  <p className="text-xs sm:text-sm text-green-600 font-medium">Items Added</p>
+                  <p className="text-xl sm:text-2xl font-bold text-green-900 mt-1">{totalActionCounts.Added}</p>
                 </div>
                 <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
                   <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -268,8 +268,8 @@ export default function ActivityLogs({ activityLogs, currentUser }) {
             <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-blue-600 font-medium">Items Edited</p>
-                  <p className="text-2xl font-bold text-blue-900 mt-1">{totalActionCounts.Edited}</p>
+                  <p className="text-xs sm:text-sm text-blue-600 font-medium">Items Edited</p>
+                  <p className="text-xl sm:text-2xl font-bold text-blue-900 mt-1">{totalActionCounts.Edited}</p>
                 </div>
                 <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
                   <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -282,8 +282,8 @@ export default function ActivityLogs({ activityLogs, currentUser }) {
             <div className="p-4 rounded-lg bg-red-50 border border-red-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-red-600 font-medium">Items Deleted</p>
-                  <p className="text-2xl font-bold text-red-900 mt-1">{totalActionCounts.Deleted}</p>
+                  <p className="text-xs sm:text-sm text-red-600 font-medium">Items Deleted</p>
+                  <p className="text-xl sm:text-2xl font-bold text-red-900 mt-1">{totalActionCounts.Deleted}</p>
                 </div>
                 <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
                   <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -296,8 +296,8 @@ export default function ActivityLogs({ activityLogs, currentUser }) {
             <div className="p-4 rounded-lg bg-purple-50 border border-purple-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-purple-600 font-medium">Transactions</p>
-                  <p className="text-2xl font-bold text-purple-900 mt-1">{totalActionCounts.Transaction}</p>
+                  <p className="text-xs sm:text-sm text-purple-600 font-medium">Transactions</p>
+                  <p className="text-xl sm:text-2xl font-bold text-purple-900 mt-1">{totalActionCounts.Transaction}</p>
                 </div>
                 <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
                   <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -309,7 +309,8 @@ export default function ActivityLogs({ activityLogs, currentUser }) {
           </div>
 
           {/* Logs table */}
-          <div className="rounded-md border">
+          {/* Desktop Table View */}
+          <div className="hidden md:block rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -367,6 +368,67 @@ export default function ActivityLogs({ activityLogs, currentUser }) {
                 )}
               </TableBody>
             </Table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-4">
+            {filteredLogs.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                {searchTerm || filterAction !== 'all' || selectedMonth !== 'all' || selectedYear !== 'all'
+                  ? 'No logs found matching filters'
+                  : 'No activity logs yet'
+                }
+              </div>
+            ) : (
+              filteredLogs.map((log, index) => (
+                <Card key={log.id} className="p-4">
+                  <div className="space-y-3">
+                    {/* Header */}
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold text-muted-foreground">#{index + 1}</span>
+                          <Badge variant={
+                            log.action === 'Added' ? 'success' :
+                            log.action === 'Edited' ? 'default' :
+                            log.action === 'Transaction' ? 'outline' :
+                            'destructive'
+                          }>
+                            {log.action}
+                          </Badge>
+                        </div>
+                        <h3 className="font-semibold text-lg mt-1">{log.itemName}</h3>
+                      </div>
+                    </div>
+                    
+                    {/* User and Time */}
+                    <div className="border-y py-2">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Performed by</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <p className="font-medium">{log.userName}</p>
+                            <Badge variant="outline" className="text-xs">{log.userRole}</Badge>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-muted-foreground">When</p>
+                          <p className="text-sm font-medium mt-1">{log.timestamp}</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Details */}
+                    {log.details && (
+                      <div>
+                        <p className="text-xs text-muted-foreground">Details</p>
+                        <p className="text-sm mt-1">{log.details}</p>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              ))
+            )}
           </div>
 
           {filteredLogs.length > 0 && (

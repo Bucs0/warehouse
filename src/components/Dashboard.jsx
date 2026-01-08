@@ -184,16 +184,16 @@ export default function Dashboard({ user, inventoryData, damagedItems, activityL
   return (
     <div className="space-y-6">
       {/* Welcome header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
           <p className="text-muted-foreground mt-1">
             Welcome back, {user.name}! 
             <Badge variant="outline" className="ml-2">{user.role}</Badge>
           </p>
         </div>
         
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           {user.role === 'Admin' && (
             <Button 
               variant="outline"
@@ -214,24 +214,25 @@ export default function Dashboard({ user, inventoryData, damagedItems, activityL
           )}
           
           {user.role === 'Admin' && (
-            <Button variant="outline" onClick={() => onNavigate('inventory')}>
+            <Button variant="outline" onClick={() => onNavigate('inventory')} className="w-full sm:w-auto">
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
               </svg>
-              View Full Inventory
+              <span className="hidden sm:inline">View Full Inventory</span>
+              <span className="sm:hidden">Inventory</span>
             </Button>
           )}
         </div>
       </div>
 
       {/* Statistics cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Items</p>
-                <h3 className="text-3xl font-bold mt-2">{totalItems}</h3>
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground">Total Items</p>
+                <h3 className="text-2xl sm:text-3xl font-bold mt-2">{totalItems}</h3>
               </div>
               <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                 <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -246,8 +247,8 @@ export default function Dashboard({ user, inventoryData, damagedItems, activityL
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Low Stock Items</p>
-                <h3 className="text-3xl font-bold mt-2 text-orange-600">{lowStockItems}</h3>
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground">Low Stock Items</p>
+                <h3 className="text-2xl sm:text-3xl font-bold mt-2 text-orange-600">{lowStockItems}</h3>
               </div>
               <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
                 <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -262,8 +263,8 @@ export default function Dashboard({ user, inventoryData, damagedItems, activityL
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Damaged Items</p>
-                <h3 className="text-3xl font-bold mt-2 text-red-600">{damagedItemsCount}</h3>
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground">Damaged Items</p>
+                <h3 className="text-2xl sm:text-3xl font-bold mt-2 text-red-600">{damagedItemsCount}</h3>
               </div>
               <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
                 <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -278,8 +279,8 @@ export default function Dashboard({ user, inventoryData, damagedItems, activityL
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Value</p>
-                <h3 className="text-3xl font-bold mt-2 text-green-600">
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground">Total Value</p>
+                <h3 className="text-xl sm:text-2xl md:text-3xl font-bold mt-2 text-green-600">
                   ₱{totalValue.toLocaleString('en-PH', { minimumFractionDigits: 2 })}
                 </h3>
               </div>
@@ -311,7 +312,7 @@ export default function Dashboard({ user, inventoryData, damagedItems, activityL
           ) : (
             <div className="space-y-4">
               {recentActivities.map((log) => (
-                <div key={log.id} className="flex items-start gap-4 pb-4 border-b last:border-0 last:pb-0">
+                <div key={log.id} className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4 pb-4 border-b last:border-0 last:pb-0">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
                     log.action === 'Added' ? 'bg-green-100' :
                     log.action === 'Edited' ? 'bg-blue-100' :
@@ -334,13 +335,13 @@ export default function Dashboard({ user, inventoryData, damagedItems, activityL
                     )}
                   </div>
 
-                  <div className="flex-1">
-                    <p className="font-medium">{log.itemName}</p>
-                    <p className="text-sm text-muted-foreground">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium truncate">{log.itemName}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">
                       {log.action} by {log.userName} • {log.timestamp}
                     </p>
                     {log.details && (
-                      <p className="text-sm text-muted-foreground mt-1">{log.details}</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground mt-1 line-clamp-2">{log.details}</p>
                     )}
                   </div>
 
@@ -360,7 +361,7 @@ export default function Dashboard({ user, inventoryData, damagedItems, activityL
 
       {/* User Approval Dialog */}
       <Dialog open={isApprovalDialogOpen} onOpenChange={setIsApprovalDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full">
           <DialogHeader>
             <DialogTitle>Staff Approval Requests</DialogTitle>
             <p className="text-sm text-muted-foreground mt-2">

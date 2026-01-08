@@ -118,26 +118,27 @@ export default function InventoryTable({
       {/* MAIN INVENTORY CARD */}
       <Card>
         <CardHeader>
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <CardTitle>Inventory Management</CardTitle>
+              <CardTitle className="text-xl sm:text-2xl">Inventory Management</CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
                 {normalizedInventory.length} total items • {filteredItems.length} showing
               </p>
             </div>
             
             {user?.role === 'Admin' && (
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Button 
                   onClick={() => setIsLocationDialogOpen(true)}
                   variant="outline"
+                  className="w-full sm:w-auto"
                 >
                   <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                   </svg>
                   Locations
                 </Button>
-                <Button onClick={() => setIsAddDialogOpen(true)}>
+                <Button onClick={() => setIsAddDialogOpen(true)} className="w-full sm:w-auto">
                   <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
@@ -148,7 +149,7 @@ export default function InventoryTable({
           </div>
 
           {/* Search and Filters */}
-          <div className="flex flex-col md:flex-row gap-4 mt-4">
+          <div className="flex flex-col sm:flex-row gap-4 mt-4">
             <div className="flex-1 relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -196,7 +197,8 @@ export default function InventoryTable({
         </CardHeader>
 
         <CardContent>
-          <div className="rounded-md border">
+          {/* Desktop Table View */}
+          <div className="hidden md:block rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -295,6 +297,115 @@ export default function InventoryTable({
                 )}
               </TableBody>
             </Table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-4">
+            {filteredItems.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="space-y-4">
+                  {normalizedInventory.length === 0 ? (
+                    <>
+                      <div className="text-6xl">📦</div>
+                      <div className="text-xl font-bold">No Items Found</div>
+                      <div className="text-muted-foreground">
+                        <p>Add your first item using the "Add Item" button above</p>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-4xl">🔍</div>
+                      <div className="text-lg font-semibold">No Match Found</div>
+                      <div className="text-sm text-muted-foreground">
+                        {searchTerm && <p>Search: "{searchTerm}"</p>}
+                        {filterStatus !== 'all' && <p>Filter: {filterStatus}</p>}
+                        {filterCategory !== 'all' && <p>Category: {filterCategory}</p>}
+                        <p className="mt-2">Try different search terms or filters</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            ) : (
+              filteredItems.map((item) => (
+                <Card key={item.id} className="p-4">
+                  <div className="space-y-3">
+                    {/* Header */}
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-lg">{item.itemName}</h3>
+                        <Badge variant="outline" className="mt-1">{item.category}</Badge>
+                      </div>
+                      <Badge variant={item.damagedStatus === 'Good' ? 'success' : 'destructive'}>
+                        {item.damagedStatus}
+                      </Badge>
+                    </div>
+                    
+                    {/* Quantity and Price */}
+                    <div className="flex items-center justify-between py-2 border-y">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Quantity</p>
+                        <div className="flex items-center gap-2">
+                          <p className={`text-2xl font-bold ${
+                            item.quantity <= item.reorderLevel ? 'text-orange-600' : 'text-green-600'
+                          }`}>
+                            {item.quantity}
+                          </p>
+                          {item.quantity <= item.reorderLevel && (
+                            <Badge variant="warning" className="text-xs">Low</Badge>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-muted-foreground">Price</p>
+                        <p className="text-xl font-bold text-blue-600">
+                          ₱{item.price.toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {/* Location */}
+                    <div className="flex items-center gap-2 text-sm">
+                      <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <span className="font-medium">{item.location}</span>
+                    </div>
+                    
+                    {/* Supplier */}
+                    {item.supplier && (
+                      <div className="text-xs text-muted-foreground">
+                        Supplier: {item.supplier}
+                      </div>
+                    )}
+                    
+                    {/* Actions */}
+                    <div className="flex gap-2 pt-2 border-t">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setEditingItem(item)}
+                        className="flex-1"
+                      >
+                        Edit
+                      </Button>
+                      
+                      {user?.role === 'Admin' && (
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleDelete(item)}
+                          className="flex-1"
+                        >
+                          Delete
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              ))
+            )}
           </div>
 
           {filteredItems.length > 0 && (

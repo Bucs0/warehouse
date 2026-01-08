@@ -160,20 +160,20 @@ export default function StockTransactions({
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold">Stock Transactions</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold">Stock Transactions</h1>
         <p className="text-muted-foreground mt-1">
           Record stock IN (restock) and OUT (usage/sales) transactions
         </p>
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total IN</p>
-                <h3 className="text-3xl font-bold text-green-600 mt-2">{totalIn}</h3>
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground">Total IN</p>
+                <h3 className="text-2xl sm:text-3xl font-bold text-green-600 mt-2">{totalIn}</h3>
               </div>
               <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
                 <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -188,8 +188,8 @@ export default function StockTransactions({
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total OUT</p>
-                <h3 className="text-3xl font-bold text-red-600 mt-2">{totalOut}</h3>
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground">Total OUT</p>
+                <h3 className="text-2xl sm:text-3xl font-bold text-red-600 mt-2">{totalOut}</h3>
               </div>
               <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
                 <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -204,8 +204,8 @@ export default function StockTransactions({
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Net Movement</p>
-                <h3 className={`text-3xl font-bold mt-2 ${totalIn - totalOut >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground">Net Movement</p>
+                <h3 className={`text-2xl sm:text-3xl font-bold mt-2 ${totalIn - totalOut >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                   {totalIn - totalOut >= 0 ? '+' : ''}{totalIn - totalOut}
                 </h3>
               </div>
@@ -442,7 +442,8 @@ export default function StockTransactions({
         </CardHeader>
 
         <CardContent>
-          <div className="rounded-md border">
+          {/* Desktop Table View */}
+          <div className="hidden md:block rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -492,6 +493,67 @@ export default function StockTransactions({
                 )}
               </TableBody>
             </Table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-4">
+            {filteredTransactions.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No transactions found
+              </div>
+            ) : (
+              filteredTransactions.map((transaction) => {
+                const transType = transaction.transactionType || transaction.transaction_type
+                const itemName = transaction.itemName || transaction.item_name
+                const userName = transaction.userName || transaction.user_name
+                const stockAfter = transaction.stockAfter || transaction.stock_after
+                
+                return (
+                  <Card key={transaction.id} className="p-4">
+                    <div className="space-y-3">
+                      {/* Header with item and type */}
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-lg">{itemName}</h3>
+                          <p className="text-xs text-muted-foreground mt-1">{transaction.timestamp}</p>
+                        </div>
+                        <Badge variant={transType === 'IN' ? 'success' : 'destructive'}>
+                          {transType}
+                        </Badge>
+                      </div>
+                      
+                      {/* Quantity and Stock Info */}
+                      <div className="flex items-center justify-between py-2 border-y">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Quantity</p>
+                          <p className={`text-xl font-bold ${
+                            transType === 'IN' ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {transType === 'IN' ? '+' : '-'}{transaction.quantity}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-muted-foreground">Stock After</p>
+                          <p className="text-xl font-bold">{stockAfter}</p>
+                        </div>
+                      </div>
+                      
+                      {/* Details */}
+                      <div className="space-y-2 text-sm">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Reason</p>
+                          <p className="font-medium">{transaction.reason}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Processed by</p>
+                          <p className="font-medium">{userName}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                )
+              })
+            )}
           </div>
 
           {filteredTransactions.length > 0 && (

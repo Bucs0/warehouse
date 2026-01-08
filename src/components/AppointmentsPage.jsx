@@ -186,9 +186,9 @@ export default function AppointmentsPage({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-        <h1 className="text-3xl font-bold">Appointment Scheduling</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold">Appointment Scheduling</h1>
         <p className="text-muted-foreground mt-1">
         Schedule and manage restock appointments with suppliers
         </p>
@@ -219,13 +219,13 @@ export default function AppointmentsPage({
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Upcoming</p>
-                <h3 className="text-3xl font-bold text-blue-600 mt-2">{upcomingAppointments}</h3>
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground">Upcoming</p>
+                <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-blue-600 mt-2">{upcomingAppointments}</h3>
               </div>
               <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                 <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -240,8 +240,8 @@ export default function AppointmentsPage({
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Pending</p>
-                <h3 className="text-3xl font-bold text-yellow-600 mt-2">{pendingCount}</h3>
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground">Pending</p>
+                <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-yellow-600 mt-2">{pendingCount}</h3>
               </div>
               <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
                 <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -256,8 +256,8 @@ export default function AppointmentsPage({
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Confirmed</p>
-                <h3 className="text-3xl font-bold text-purple-600 mt-2">{confirmedCount}</h3>
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground">Confirmed</p>
+                <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-purple-600 mt-2">{confirmedCount}</h3>
               </div>
               <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
                 <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -272,8 +272,8 @@ export default function AppointmentsPage({
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Completed</p>
-                <h3 className="text-3xl font-bold text-green-600 mt-2">{completedCount}</h3>
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground">Completed</p>
+                <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-green-600 mt-2">{completedCount}</h3>
               </div>
               <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
                 <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -288,8 +288,8 @@ export default function AppointmentsPage({
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Cancelled</p>
-                <h3 className="text-3xl font-bold text-gray-600 mt-2">{cancelledCount}</h3>
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground">Cancelled</p>
+                <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-600 mt-2">{cancelledCount}</h3>
               </div>
               <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
                 <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -304,13 +304,13 @@ export default function AppointmentsPage({
       {/* Appointments List/Calendar */}
       <Card>
         <CardHeader>
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <CardTitle>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <CardTitle className="text-xl sm:text-2xl">
               {viewMode === 'list' ? 'Appointments List' : 'Calendar View'}
             </CardTitle>
             
             {user.role === 'Admin' && (
-              <Button onClick={() => setIsScheduleDialogOpen(true)}>
+              <Button onClick={() => setIsScheduleDialogOpen(true)} className="w-full sm:w-auto">
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
@@ -319,7 +319,7 @@ export default function AppointmentsPage({
             )}
           </div>
 
-          <div className="flex flex-col md:flex-row gap-4 mt-4">
+          <div className="flex flex-col sm:flex-row gap-4 mt-4">
             <div className="flex-1">
               <Input
                 type="search"
@@ -364,7 +364,9 @@ export default function AppointmentsPage({
 
         <CardContent>
           {viewMode === 'list' ? (
-            <div className="rounded-md border">
+            <>
+              {/* Desktop Table View */}
+              <div className="hidden md:block rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -470,6 +472,104 @@ export default function AppointmentsPage({
                 </TableBody>
               </Table>
             </div>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-4">
+              {filteredAppointments.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  {searchTerm || filterStatus !== 'all'
+                    ? 'No appointments found matching filters'
+                    : 'No appointments scheduled yet'
+                  }
+                </div>
+              ) : (
+                filteredAppointments.map((appointment) => (
+                  <Card key={appointment.id} className={`p-4 ${isOverdue(appointment) ? 'border-red-300 bg-red-50' : ''}`}>
+                    <div className="space-y-3">
+                      {/* Header */}
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-lg">{appointment.supplierName}</h3>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {formatDate(appointment.date)} • {appointment.time}
+                          </p>
+                        </div>
+                        <Badge variant={
+                          appointment.status === 'pending' ? 'warning' :
+                          appointment.status === 'confirmed' ? 'default' :
+                          appointment.status === 'completed' ? 'success' :
+                          'secondary'
+                        }>
+                          {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
+                        </Badge>
+                      </div>
+                      
+                      {/* Overdue Warning */}
+                      {isOverdue(appointment) && (
+                        <div className="flex items-center gap-2 p-2 bg-red-100 border border-red-300 rounded text-sm text-red-700">
+                          <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                          </svg>
+                          <span>This appointment is overdue</span>
+                        </div>
+                      )}
+                      
+                      {/* Items */}
+                      <div className="border-y py-3">
+                        <p className="text-xs text-muted-foreground mb-2">Items to restock</p>
+                        <div className="space-y-1">
+                          {appointment.items.map((item, idx) => (
+                            <div key={idx} className="flex items-center justify-between text-sm">
+                              <span className="font-medium">{item.itemName}</span>
+                              <Badge variant="outline">{item.quantity}</Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Scheduled By */}
+                      <div className="text-xs text-muted-foreground">
+                        Scheduled by: {appointment.scheduledBy}
+                      </div>
+                      
+                      {/* Actions */}
+                      <div className="flex gap-2 pt-2 border-t">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setViewingAppointment(appointment)}
+                          className="flex-1"
+                        >
+                          View
+                        </Button>
+                        
+                        {user.role === 'Admin' && appointment.status !== 'completed' && appointment.status !== 'cancelled' && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setEditingAppointment(appointment)}
+                              className="flex-1"
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="default"
+                              onClick={() => handleComplete(appointment)}
+                              className="flex-1"
+                            >
+                              Complete
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                ))
+              )}
+            </div>
+          </>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredAppointments.map((appointment) => (
