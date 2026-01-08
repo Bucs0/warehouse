@@ -1,5 +1,3 @@
-// ✅ UPDATED: Added data normalization for database compatibility
-
 import { useState, useMemo } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from './ui/table'
@@ -28,15 +26,13 @@ export default function SuppliersPage({
   const [editingSupplier, setEditingSupplier] = useState(null)
   const [filterStatus, setFilterStatus] = useState('all')
   
-  // States for handling new items (for both add and edit)
   const [pendingNewItems, setPendingNewItems] = useState([])
   const [currentNewItemIndex, setCurrentNewItemIndex] = useState(0)
   const [isNewItemDialogOpen, setIsNewItemDialogOpen] = useState(false)
   const [pendingSupplierData, setPendingSupplierData] = useState(null)
   const [createdItemIds, setCreatedItemIds] = useState([])
-  const [isEditingMode, setIsEditingMode] = useState(false) // Track if we're editing or adding
+  const [isEditingMode, setIsEditingMode] = useState(false)
 
-  // ✅ Normalize supplier data
   const normalizedSuppliers = useMemo(() => 
     normalizeSuppliers(suppliers), 
     [suppliers]

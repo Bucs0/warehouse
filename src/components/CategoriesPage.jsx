@@ -1,5 +1,3 @@
-// ✅ UPDATED: Added data normalization for database compatibility
-
 import { useState, useMemo } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card'
 import { Button } from './ui/button'
@@ -14,19 +12,16 @@ export default function CategoriesPage({ user, categories, inventoryData, onAddC
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [editingCategory, setEditingCategory] = useState(null)
 
-  // ✅ Normalize category data
   const normalizedCategories = useMemo(() => 
     normalizeCategories(categories), 
     [categories]
   )
 
-  // Filter categories
   const filteredCategories = normalizedCategories.filter(category =>
     category.categoryName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (category.description && category.description.toLowerCase().includes(searchTerm.toLowerCase()))
   )
 
-  // Count items per category
   const getCategoryItemCount = (categoryName) => {
     return inventoryData.filter(item => {
       const itemCategory = item.category_name || item.category
@@ -34,7 +29,6 @@ export default function CategoriesPage({ user, categories, inventoryData, onAddC
     }).length
   }
 
-  // Handle delete with confirmation
   const handleDelete = (category) => {
     const itemCount = getCategoryItemCount(category.categoryName)
     if (itemCount > 0) {

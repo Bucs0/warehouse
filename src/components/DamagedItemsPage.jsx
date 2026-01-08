@@ -1,5 +1,3 @@
-// ✅ UPDATED: Added data normalization for database compatibility
-
 import { useState, useMemo } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from './ui/table'
@@ -13,17 +11,15 @@ import { normalizeDamagedItems } from '../lib/dataMapper'
 
 export default function DamagedItemsPage({ user, damagedItems, onUpdateDamagedItem, onRemoveDamagedItem }) {
   const [searchTerm, setSearchTerm] = useState('')
-  const [filterStatus, setFilterStatus] = useState('all') // all, standby, thrown
+  const [filterStatus, setFilterStatus] = useState('all')
   const [selectedItem, setSelectedItem] = useState(null)
   const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false)
 
-  // ✅ Normalize damaged items data
   const normalizedItems = useMemo(() => 
     normalizeDamagedItems(damagedItems), 
     [damagedItems]
   )
 
-  // Filter damaged items
   const filteredItems = normalizedItems.filter(item => {
     const matchesSearch = 
       item.itemName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -40,7 +36,6 @@ export default function DamagedItemsPage({ user, damagedItems, onUpdateDamagedIt
     return matchesSearch && matchesStatus
   })
 
-  // Calculate statistics
   const standbyCount = normalizedItems.filter(i => i.status === 'Standby').length
   const thrownCount = normalizedItems.filter(i => i.status === 'Thrown').length
   const totalValue = normalizedItems.reduce((sum, item) => sum + (item.quantity * item.price), 0)

@@ -1,6 +1,4 @@
 
-// Dialog for adding new category
-
 import { useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog'
 import { Input } from './ui/input'
@@ -20,13 +18,11 @@ export default function AddCategoryDialog({ open, onOpenChange, onAdd, existingC
   const handleSubmit = (e) => {
     e.preventDefault()
 
-    // Validate
     if (!formData.categoryName) {
       alert('Please enter category name')
       return
     }
 
-    // Check for duplicate
     const duplicate = existingCategories.find(
       cat => cat.categoryName.toLowerCase() === formData.categoryName.toLowerCase()
     )
@@ -35,7 +31,6 @@ export default function AddCategoryDialog({ open, onOpenChange, onAdd, existingC
       return
     }
 
-    // Create new category
     const newCategory = {
       id: Date.now(),
       ...formData,
@@ -44,7 +39,6 @@ export default function AddCategoryDialog({ open, onOpenChange, onAdd, existingC
 
     onAdd(newCategory)
 
-    // Reset
     setFormData({
       categoryName: '',
       description: ''

@@ -1,5 +1,3 @@
-// ✅ CLEAN PRODUCTION VERSION - InventoryTable.jsx
-
 import { useState, useMemo, useEffect } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from './ui/table'
@@ -30,7 +28,6 @@ export default function InventoryTable({
   const [filterCategory, setFilterCategory] = useState('all')
   const [isLocationDialogOpen, setIsLocationDialogOpen] = useState(false)
 
-  // Simple normalization - handles both camelCase and snake_case
   const normalizeItem = (item) => {
     if (!item) return null
     
@@ -48,13 +45,11 @@ export default function InventoryTable({
     }
   }
 
-  // Normalize inventory data
   const normalizedInventory = useMemo(() => {
     if (!inventoryData || !Array.isArray(inventoryData)) return []
     return inventoryData.map(normalizeItem).filter(Boolean)
   }, [inventoryData])
 
-  // Get unique categories from inventory
   const uniqueCategories = useMemo(() => {
     const cats = new Set()
     normalizedInventory.forEach(item => {
@@ -63,7 +58,6 @@ export default function InventoryTable({
     return Array.from(cats).sort()
   }, [normalizedInventory])
 
-  // Filter items
   const filteredItems = useMemo(() => {
     return normalizedInventory.filter(item => {
       if (!item) return false
@@ -101,7 +95,6 @@ export default function InventoryTable({
     }
   }
 
-  // Loading state
   if (!inventoryData) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">

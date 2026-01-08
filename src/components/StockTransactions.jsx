@@ -23,17 +23,15 @@ export default function StockTransactions({
   const [selectedMonth, setSelectedMonth] = useState('')
   const [selectedYear, setSelectedYear] = useState('')
 
-  // Get unique dates from transaction history
   const uniqueDates = useMemo(() => {
     const dates = new Set()
     transactionHistory.forEach(transaction => {
       const dateStr = transaction.timestamp.split(' ')[0] // Extract date part
       dates.add(dateStr)
     })
-    return Array.from(dates).sort((a, b) => new Date(b) - new Date(a)) // Sort newest first
+    return Array.from(dates).sort((a, b) => new Date(b) - new Date(a))
   }, [transactionHistory])
 
-  // Get unique months and years
   const availableMonthsYears = useMemo(() => {
     const months = new Set()
     const years = new Set()
@@ -41,17 +39,16 @@ export default function StockTransactions({
       const dateStr = transaction.timestamp.split(' ')[0]
       const date = new Date(dateStr)
       if (!isNaN(date)) {
-        months.add(date.getMonth()) // 0-11
+        months.add(date.getMonth())
         years.add(date.getFullYear())
       }
     })
     return {
       months: Array.from(months).sort((a, b) => a - b),
-      years: Array.from(years).sort((a, b) => b - a) // Newest first
+      years: Array.from(years).sort((a, b) => b - a)
     }
   }, [transactionHistory])
 
-  // Filter transactions (backend already returns newest first)
   const filteredTransactions = transactionHistory.filter(transaction => {
     const itemName = transaction.itemName || transaction.item_name || ''
     const userName = transaction.userName || transaction.user_name || ''
@@ -63,12 +60,10 @@ export default function StockTransactions({
     
     const matchesType = filterType === 'all' || transaction.transactionType === filterType || transaction.transaction_type === filterType
 
-    // Date filtering
     const transactionDate = transaction.timestamp.split(' ')[0]
     const date = new Date(transactionDate)
     let matchesDate = true
     
-    // Month and Year filter
     if (selectedMonth !== '' || selectedYear !== '') {
       if (selectedMonth !== '' && !isNaN(date)) {
         matchesDate = matchesDate && date.getMonth() === parseInt(selectedMonth)
@@ -89,10 +84,8 @@ export default function StockTransactions({
     return matchesSearch && matchesType && matchesDate
   })
 
-  // Navigate to previous/next date
   const navigateDate = (direction) => {
     if (!selectedDate) {
-      // If no date selected, select the most recent date
       if (uniqueDates.length > 0) {
         setSelectedDate(uniqueDates[0])
       }
@@ -121,7 +114,6 @@ export default function StockTransactions({
     'July', 'August', 'September', 'October', 'November', 'December'
   ]
 
-  // Get unique categories from inventory items
   const itemCategories = useMemo(() => {
     const cats = new Set()
     inventoryData.forEach(item => {
@@ -131,7 +123,6 @@ export default function StockTransactions({
     return Array.from(cats).sort()
   }, [inventoryData])
 
-  // Filter items for transaction
   const filteredItems = inventoryData.filter(item => {
     const itemName = item.itemName || item.item_name || ''
     const category = item.category || item.categoryName || item.category_name || ''

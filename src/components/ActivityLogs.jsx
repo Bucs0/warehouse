@@ -1,5 +1,3 @@
-// ✅ UPDATED: Added comprehensive data normalization for database compatibility
-
 import { useState, useMemo } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from './ui/table'

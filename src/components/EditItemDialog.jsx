@@ -1,5 +1,3 @@
-// ✅ FIXED EditItemDialog.jsx - Shows proper location names
-
 import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog'
 import { Input } from './ui/input'

@@ -1,6 +1,5 @@
 const API_BASE_URL = 'http://localhost:5000/api';
 
-// Helper function for API calls
 async function apiCall(endpoint, options = {}) {
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -24,7 +23,6 @@ async function apiCall(endpoint, options = {}) {
   }
 }
 
-// ========== AUTH API ==========
 export const authAPI = {
   login: (credentials) => apiCall('/auth/login', {
     method: 'POST',
@@ -43,7 +41,6 @@ export const authAPI = {
   deleteUser: (userId) => apiCall(`/users/${userId}`, { method: 'DELETE' }),
 };
 
-// ========== INVENTORY API ==========
 export const inventoryAPI = {
   getAll: () => apiCall('/inventory'),
   getById: (id) => apiCall(`/inventory/${id}`),
@@ -58,7 +55,6 @@ export const inventoryAPI = {
   delete: (id) => apiCall(`/inventory/${id}`, { method: 'DELETE' }),
 };
 
-// ========== CATEGORIES API ==========
 export const categoriesAPI = {
   getAll: () => apiCall('/categories'),
   add: (category) => apiCall('/categories', {
@@ -72,7 +68,6 @@ export const categoriesAPI = {
   delete: (id) => apiCall(`/categories/${id}`, { method: 'DELETE' }),
 };
 
-// ========== LOCATIONS API ==========
 export const locationsAPI = {
   getAll: () => apiCall('/locations'),
   add: (location) => apiCall('/locations', {
@@ -86,7 +81,6 @@ export const locationsAPI = {
   delete: (id) => apiCall(`/locations/${id}`, { method: 'DELETE' }),
 };
 
-// ========== SUPPLIERS API ==========
 export const suppliersAPI = {
   getAll: () => apiCall('/suppliers'),
   add: (supplier) => apiCall('/suppliers', {
@@ -100,7 +94,6 @@ export const suppliersAPI = {
   delete: (id) => apiCall(`/suppliers/${id}`, { method: 'DELETE' }),
 };
 
-// ========== TRANSACTIONS API ==========
 export const transactionsAPI = {
   getAll: () => apiCall('/transactions'),
   add: (transaction) => apiCall('/transactions', {
@@ -109,7 +102,6 @@ export const transactionsAPI = {
   }),
 };
 
-// ========== APPOINTMENTS API ==========
 export const appointmentsAPI = {
   getAll: () => apiCall('/appointments'),
   add: (appointment) => apiCall('/appointments', {
@@ -127,7 +119,6 @@ export const appointmentsAPI = {
   cancel: (id) => apiCall(`/appointments/${id}/cancel`, { method: 'POST' }),
 };
 
-// ========== DAMAGED ITEMS API ==========
 export const damagedItemsAPI = {
   getAll: () => apiCall('/damaged-items'),
   update: (id, data) => apiCall(`/damaged-items/${id}`, {
@@ -137,7 +128,6 @@ export const damagedItemsAPI = {
   delete: (id) => apiCall(`/damaged-items/${id}`, { method: 'DELETE' }),
 };
 
-// ========== ACTIVITY LOGS API ==========
 export const activityLogsAPI = {
   getAll: () => apiCall('/activity-logs'),
   add: (log) => apiCall('/activity-logs', {
@@ -146,7 +136,6 @@ export const activityLogsAPI = {
   }),
 };
 
-// ========== LOW STOCK ALERTS API ==========
 export const lowStockAlertsAPI = {
   getLowStockItems: () => apiCall('/low-stock-items'),
   getPendingAlerts: () => apiCall('/low-stock-alerts/pending'),
@@ -154,12 +143,10 @@ export const lowStockAlertsAPI = {
   clearAlert: (itemId) => apiCall(`/low-stock-alerts/${itemId}`, { method: 'DELETE' }),
 };
 
-// ========== DASHBOARD API ==========
 export const dashboardAPI = {
   getStats: () => apiCall('/dashboard/stats'),
 };
 
-// ========== REPORTS API ==========
 export const reportsAPI = {
   getActivityLogs: (filters) => {
     const params = new URLSearchParams(filters);

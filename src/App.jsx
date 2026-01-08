@@ -9,7 +9,6 @@ import AppointmentsPage from './components/AppointmentsPage'
 import DamagedItemsPage from './components/DamagedItemsPage'
 import ActivityLogs from './components/ActivityLogs'
 
-// Import API services
 import {
   inventoryAPI,
   categoriesAPI,
@@ -31,7 +30,6 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState('dashboard')
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   
-  // State for all data
   const [inventoryData, setInventoryData] = useState([])
   const [suppliers, setSuppliers] = useState([])
   const [categories, setCategories] = useState([])
@@ -44,7 +42,6 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  // Monitor app state (optional - can be removed in production)
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
       console.log('App State:', {
@@ -55,7 +52,6 @@ export default function App() {
     }
   }, [currentUser, currentPage, isLoading])
 
-  // Load all data when user logs in
   useEffect(() => {
     if (currentUser) {
       loadAllData()
@@ -103,7 +99,6 @@ export default function App() {
     }
   }
 
-  // Check for low stock items and send alerts
   useEffect(() => {
     if (!currentUser) return
 
@@ -114,7 +109,6 @@ export default function App() {
         console.log('📦 Pending low stock alerts:', pendingAlerts)
         
         for (const item of pendingAlerts) {
-          // ✅ Normalize the item data for email service
           const normalizedItem = {
             itemName: item.item_name || item.itemName || 'Unknown Item',
             quantity: item.quantity || 0,
@@ -131,10 +125,9 @@ export default function App() {
           if (result.success) {
             console.log(`✅ Low stock alert sent for: ${item.item_name}`)
             
-            // Mark as sent in database
             await lowStockAlertsAPI.markAsSent(item.id)
             
-            // Add to activity logs
+
             await activityLogsAPI.add({
               itemName: item.item_name,
               action: 'Alert',
@@ -142,7 +135,6 @@ export default function App() {
               details: `Low stock email alert sent to admin (${item.quantity} units remaining, reorder at ${item.reorder_level})`
             })
             
-            // Refresh activity logs
             const logs = await activityLogsAPI.getAll()
             setActivityLogs(logs)
           } else {
@@ -154,15 +146,12 @@ export default function App() {
       }
     }
 
-    // Check immediately and then every 5 minutes
     checkLowStock()
     const interval = setInterval(checkLowStock, 300000)
 
     return () => clearInterval(interval)
   }, [currentUser, inventoryData])
 
-  // ========== HANDLER FUNCTIONS ==========
-  
   const handleLogin = (user) => {
     setCurrentUser(user)
     setCurrentPage('dashboard')
@@ -176,7 +165,6 @@ export default function App() {
   const handleNavigate = (page) => {
     setCurrentPage(page)
     
-    // ✅ Reload activity logs when navigating to dashboard to show latest activities
     if (page === 'dashboard') {
       const reloadLogs = async () => {
         try {
@@ -191,7 +179,6 @@ export default function App() {
     }
   }
 
-  // Helper function to add activity log
   const addActivityLog = async (itemName, action, details) => {
     try {
       console.log('📝 Adding activity log:', { itemName, action, details, userId: currentUser.id })
@@ -216,13 +203,10 @@ export default function App() {
     }
   }
 
-  // ========== INVENTORY HANDLERS ==========
-  
   const handleAddItem = async (newItem) => {
     try {
       console.log('📤 Frontend: Adding item:', newItem)
       
-      // Find category ID and location ID
       const category = categories.find(c => c.category_name === newItem.category || c.categoryName === newItem.category)
       const location = locations.find(l => l.location_name === newItem.location || l.locationName === newItem.location)
       
@@ -233,7 +217,6 @@ export default function App() {
         throw new Error(`Location "${newItem.location}" not found`)
       }
       
-      // Get current date if not provided
       const currentDate = newItem.dateAdded || new Date().toISOString().split('T')[0]
       
       console.log('📤 Sending to API:', {
@@ -266,7 +249,6 @@ export default function App() {
       
       console.log('✅ Item added successfully, reloading inventory...')
       
-      // Reload inventory
       const inventory = await inventoryAPI.getAll()
       setInventoryData(inventory)
     } catch (error) {
@@ -279,7 +261,6 @@ export default function App() {
     try {
       const oldItem = inventoryData.find(item => item.id === updatedItem.id)
       
-      // Find category ID and location ID
       const category = categories.find(c => c.category_name === updatedItem.category || c.categoryName === updatedItem.category)
       const location = locations.find(l => l.location_name === updatedItem.location || l.locationName === updatedItem.location)
       
@@ -308,7 +289,6 @@ export default function App() {
         changes.length > 0 ? `Updated: ${changes.join(', ')}` : 'Updated item information'
       )
       
-      // Reload inventory
       const inventory = await inventoryAPI.getAll()
       setInventoryData(inventory)
     } catch (error) {
@@ -329,7 +309,6 @@ export default function App() {
         'Item removed from inventory'
       )
       
-      // Reload inventory
       const inventory = await inventoryAPI.getAll()
       setInventoryData(inventory)
     } catch (error) {
@@ -338,8 +317,6 @@ export default function App() {
     }
   }
 
-  // ========== TRANSACTION HANDLERS ==========
-  
   const handleTransaction = async (transaction) => {
     try {
       await transactionsAPI.add({
@@ -362,7 +339,6 @@ export default function App() {
         `${action} (${transaction.stockBefore} → ${transaction.stockAfter}) - ${transaction.reason}`
       )
       
-      // ✅ FIXED: Reload damaged items after transaction
       const [inventory, trans, damaged] = await Promise.all([
         inventoryAPI.getAll(),
         transactionsAPI.getAll(),
@@ -372,7 +348,6 @@ export default function App() {
       setTransactionHistory(trans)
       setDamagedItems(damaged)
       
-      // If item was restocked above reorder level, clear low stock alert
       const item = inventory.find(i => i.id === transaction.itemId)
       if (item && item.quantity > item.reorder_level) {
         await lowStockAlertsAPI.clearAlert(item.id)
@@ -383,8 +358,6 @@ export default function App() {
     }
   }
 
-  // ========== CATEGORY HANDLERS ==========
-  
   const handleAddCategory = async (newCategory) => {
     try {
       await categoriesAPI.add(newCategory)
@@ -416,7 +389,6 @@ export default function App() {
         'Category information updated'
       )
       
-      // Reload data
       const [cats, inventory] = await Promise.all([
         categoriesAPI.getAll(),
         inventoryAPI.getAll()
@@ -449,8 +421,6 @@ export default function App() {
     }
   }
 
-  // ========== LOCATION HANDLERS ==========
-  
   const handleAddLocation = async (newLocation) => {
     try {
       await locationsAPI.add(newLocation)
@@ -482,7 +452,6 @@ export default function App() {
         'Location information updated'
       )
       
-      // Reload data
       const [locs, inventory] = await Promise.all([
         locationsAPI.getAll(),
         inventoryAPI.getAll()
@@ -515,13 +484,10 @@ export default function App() {
     }
   }
 
-  // ========== SUPPLIER HANDLERS ==========
-  
   const handleAddSupplier = async (newSupplier) => {
     try {
       console.log('📤 Adding supplier:', newSupplier)
       
-      // Get current date if not provided
       const currentDate = newSupplier.dateAdded || new Date().toISOString().split('T')[0]
       
       await suppliersAPI.add({
@@ -570,7 +536,6 @@ export default function App() {
       const sups = await suppliersAPI.getAll()
       setSuppliers(sups)
       
-      // ✅ Reload inventory to show updated supplier assignments
       const inventory = await inventoryAPI.getAll()
       setInventoryData(inventory)
     } catch (error) {
@@ -579,7 +544,6 @@ export default function App() {
     }
   }
 
-  // ✅ NEW: Handler to update supplier-item assignments
   const handleUpdateSupplierItems = async (supplierId, selectedItemIds) => {
     try {
       console.log('📦 Updating supplier items:', { supplierId, selectedItemIds })
@@ -589,9 +553,7 @@ export default function App() {
         const shouldBeAssigned = selectedItemIds.includes(item.id)
         const currentlyAssigned = item.supplierId === supplierId || item.supplier_id === supplierId
         
-        // Only update if assignment status changed
         if (shouldBeAssigned !== currentlyAssigned) {
-          // Find category and location IDs
           const category = categories.find(c => 
             c.category_name === item.category || c.categoryName === item.category
           )
@@ -616,7 +578,6 @@ export default function App() {
       
       console.log('✅ Supplier items updated successfully')
       
-      // Reload inventory to reflect changes
       const inventory = await inventoryAPI.getAll()
       setInventoryData(inventory)
       
@@ -652,8 +613,6 @@ export default function App() {
     }
   }
 
-  // ========== APPOINTMENT HANDLERS ==========
-  
   const handleScheduleAppointment = async (appointment) => {
     try {
       await appointmentsAPI.add({
@@ -718,7 +677,6 @@ export default function App() {
         `Completed appointment - Restocked ${appointment.items.length} item(s): ${itemsList}`
       )
       
-      // Reload data
       const [apts, inventory, trans] = await Promise.all([
         appointmentsAPI.getAll(),
         inventoryAPI.getAll(),
@@ -753,8 +711,6 @@ export default function App() {
     }
   }
 
-  // ========== DAMAGED ITEMS HANDLERS ==========
-  
   const handleUpdateDamagedItem = async (updatedItem) => {
     try {
       await damagedItemsAPI.update(updatedItem.id, {
@@ -796,8 +752,6 @@ export default function App() {
     }
   }
 
-  // ========== RENDER ==========
-
   if (!currentUser) {
     return <Login onLogin={handleLogin} />
   }
@@ -836,7 +790,6 @@ export default function App() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      {/* Mobile Header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
@@ -863,7 +816,6 @@ export default function App() {
         </button>
       </div>
 
-      {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
         <div
           className="lg:hidden fixed inset-0 bg-black/50 z-40"
@@ -871,7 +823,6 @@ export default function App() {
         />
       )}
 
-      {/* Sidebar Navigation */}
       <aside className={`
         w-64 bg-white border-r border-gray-200 fixed h-screen overflow-y-auto z-50
         transition-transform duration-300 ease-in-out
@@ -879,7 +830,6 @@ export default function App() {
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         <div className="p-6">
-          {/* Logo/Brand */}
           <div className="flex items-center gap-3 mb-8">
             <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
               <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -892,13 +842,11 @@ export default function App() {
             </div>
           </div>
 
-          {/* User Info */}
           <div className="mb-8 p-4 bg-gray-50 rounded-lg">
             <p className="font-medium">{currentUser.name}</p>
             <p className="text-sm text-muted-foreground">{currentUser.role}</p>
           </div>
 
-          {/* Navigation Menu */}
           <nav className="space-y-2">
             <button
               onClick={() => {
@@ -1023,7 +971,6 @@ export default function App() {
             </button>
           </nav>
 
-          {/* Logout Button */}
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors mt-8"
@@ -1036,7 +983,6 @@ export default function App() {
         </div>
       </aside>
 
-      {/* Main Content Area */}
       <main className="flex-1 lg:ml-64 p-4 sm:p-6 md:p-8 pt-20 lg:pt-8">
         {currentPage === 'dashboard' && (
           <Dashboard
@@ -1058,7 +1004,6 @@ export default function App() {
           />
         )}
 
-        {/* Manage Inventory Page */}
         {currentPage === 'inventory' && currentUser.role === 'Admin' && (
           <InventoryTable
             user={currentUser}

@@ -1,5 +1,3 @@
-// ✅ FIXED AddItemDialog.jsx
-
 import { useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog'
 import { Input } from './ui/input'
@@ -26,7 +24,6 @@ export default function AddItemDialog({
     supplier: ''
   })
 
-  // Set default category when categories load
   useState(() => {
     if (categories.length > 0 && !formData.category) {
       const firstCategory = categories[0].categoryName || categories[0].category_name
@@ -56,7 +53,6 @@ export default function AddItemDialog({
   }
 
   const handleSubmit = () => {
-    // ✅ Validate required fields
     if (!formData.itemName || !formData.itemName.trim()) {
       alert('Please enter an item name')
       return
@@ -77,7 +73,6 @@ export default function AddItemDialog({
       return
     }
 
-    // ✅ Create clean item object - NO dateAdded here, backend handles it
     const newItem = {
       itemName: formData.itemName.trim(),
       category: formData.category,
@@ -93,7 +88,6 @@ export default function AddItemDialog({
 
     onAdd(newItem)
 
-    // Reset form
     setFormData({
       itemName: '',
       category: categories.length > 0 ? (categories[0].categoryName || categories[0].category_name) : '',

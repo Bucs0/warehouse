@@ -12,7 +12,6 @@ export default function Dashboard({ user, inventoryData, damagedItems, activityL
   const [approvedUsers, setApprovedUsers] = useState([])
   const [isLoading, setIsLoading] = useState(false)
 
-  // Load users from database
   useEffect(() => {
     if (user && user.role === 'Admin') {
       loadUsers()
@@ -48,7 +47,6 @@ export default function Dashboard({ user, inventoryData, damagedItems, activityL
         )
       }
       
-      // Reload users
       await loadUsers()
       alert('User approved successfully!')
     } catch (error) {
@@ -76,7 +74,6 @@ export default function Dashboard({ user, inventoryData, damagedItems, activityL
         )
       }
       
-      // Reload users
       await loadUsers()
       alert('User rejected successfully!')
     } catch (error) {
@@ -102,7 +99,6 @@ export default function Dashboard({ user, inventoryData, damagedItems, activityL
       return
     }
     
-    // Trim whitespace and check match
     const trimmedConfirmation = confirmation.trim()
     
     if (trimmedConfirmation !== userToDelete.username) {
@@ -129,7 +125,6 @@ export default function Dashboard({ user, inventoryData, damagedItems, activityL
         )
       }
       
-      // Reload users
       await loadUsers()
       alert('✅ User account deleted successfully!')
     } catch (error) {
@@ -138,7 +133,6 @@ export default function Dashboard({ user, inventoryData, damagedItems, activityL
       console.error('Error message:', error.message)
       console.error('Error response:', error.response)
       
-      // More detailed error message
       let errorMessage = 'Failed to delete user: '
       
       if (error.message.includes('foreign key constraint')) {
@@ -155,20 +149,16 @@ export default function Dashboard({ user, inventoryData, damagedItems, activityL
     }
   }
 
-  // Calculate statistics
   const totalItems = inventoryData.length
   const lowStockItems = inventoryData.filter(item => item.quantity <= item.reorderLevel || item.quantity <= item.reorder_level).length
-  // Count damaged items from the damagedItems array
   const damagedItemsCount = damagedItems ? damagedItems.length : 0
   const totalValue = inventoryData.reduce((sum, item) => sum + (item.quantity * (item.price || 0)), 0)
 
-  // ✅ Normalize activity logs to handle both snake_case and camelCase
   const normalizedLogs = useMemo(() => 
     normalizeActivityLogs(activityLogs),
     [activityLogs]
   )
 
-  // ✅ FIXED: Show most recent activities first (backend already sorted DESC)
   const recentActivities = normalizedLogs.slice(0, 10)
 
   useEffect(() => {

@@ -5,11 +5,9 @@ require('dotenv').config();
 
 const app = express();
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Database connection pool
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
@@ -20,7 +18,6 @@ const pool = mysql.createPool({
   queueLimit: 0
 });
 
-// Test database connection
 pool.getConnection()
   .then(connection => {
     console.log('✅ Database connected successfully');
@@ -30,9 +27,6 @@ pool.getConnection()
     console.error('❌ Database connection failed:', err);
   });
 
-// ========== AUTH ROUTES ==========
-
-// Login
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { usernameOrEmail, password } = req.body;
@@ -74,7 +68,6 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-// Signup
 app.post('/api/auth/signup', async (req, res) => {
   try {
     const { username, email, password, name } = req.body;
@@ -109,7 +102,6 @@ app.post('/api/auth/signup', async (req, res) => {
   }
 });
 
-// Get pending users
 app.get('/api/users/pending', async (req, res) => {
   try {
     const [users] = await pool.query(
@@ -122,7 +114,6 @@ app.get('/api/users/pending', async (req, res) => {
   }
 });
 
-// Get approved users
 app.get('/api/users/approved', async (req, res) => {
   try {
     const [users] = await pool.query(
@@ -135,7 +126,6 @@ app.get('/api/users/approved', async (req, res) => {
   }
 });
 
-// Approve user
 app.post('/api/users/:id/approve', async (req, res) => {
   try {
     const [result] = await pool.query(
@@ -154,7 +144,6 @@ app.post('/api/users/:id/approve', async (req, res) => {
   }
 });
 
-// Reject user (pending signup rejection) - Specific route must come FIRST
 app.delete('/api/users/:id/reject', async (req, res) => {
   try {
     const [result] = await pool.query(
@@ -173,21 +162,18 @@ app.delete('/api/users/:id/reject', async (req, res) => {
   }
 });
 
-// Delete approved user (Admin only) - General route comes AFTER specific routes
 app.delete('/api/users/:id', async (req, res) => {
   try {
     console.log('🗑️ Delete user request for ID:', req.params.id);
     console.log('📋 Request method:', req.method);
     console.log('📋 Request URL:', req.url);
     
-    // Validate ID is a number
     const userId = parseInt(req.params.id);
     if (isNaN(userId)) {
       console.log('❌ Invalid user ID');
       return res.status(400).json({ error: 'Invalid user ID' });
     }
     
-    // First check if user exists and is not an admin
     console.log('🔍 Checking if user exists...');
     const [users] = await pool.query(
       'SELECT id, username, role, status FROM users WHERE id = ?',
@@ -204,13 +190,11 @@ app.delete('/api/users/:id', async (req, res) => {
     const user = users[0];
     console.log('👤 User found:', user);
     
-    // Prevent deletion of admin accounts
     if (user.role === 'Admin') {
       console.log('🚫 Cannot delete admin account');
       return res.status(403).json({ error: 'Cannot delete admin accounts' });
     }
     
-    // Delete the user
     console.log('🗑️ Attempting to delete user...');
     const [result] = await pool.query(
       'DELETE FROM users WHERE id = ? AND role != "Admin"',
@@ -244,9 +228,6 @@ app.delete('/api/users/:id', async (req, res) => {
   }
 });
 
-// ========== INVENTORY ROUTES ==========
-
-// Get all inventory items
 app.get('/api/inventory', async (req, res) => {
   try {
     const [items] = await pool.query(`
@@ -268,7 +249,6 @@ app.get('/api/inventory', async (req, res) => {
   }
 });
 
-// Get single inventory item
 app.get('/api/inventory/:id', async (req, res) => {
   try {
     const [items] = await pool.query(`
@@ -295,7 +275,6 @@ app.get('/api/inventory/:id', async (req, res) => {
   }
 });
 
-// Add inventory item
 app.post('/api/inventory', async (req, res) => {
   try {
     const { 
@@ -309,7 +288,6 @@ app.post('/api/inventory', async (req, res) => {
       dateAdded 
     } = req.body;
     
-    // Use current date if dateAdded is not provided
     const currentDate = dateAdded || new Date().toISOString().split('T')[0];
     
     console.log('📥 Adding inventory item:', {
@@ -347,7 +325,6 @@ app.post('/api/inventory', async (req, res) => {
   }
 });
 
-// Update inventory item
 app.put('/api/inventory/:id', async (req, res) => {
   try {
     const { 
@@ -380,7 +357,6 @@ app.put('/api/inventory/:id', async (req, res) => {
   }
 });
 
-// Delete inventory item
 app.delete('/api/inventory/:id', async (req, res) => {
   try {
     const [result] = await pool.query(
@@ -399,9 +375,6 @@ app.delete('/api/inventory/:id', async (req, res) => {
   }
 });
 
-// ========== CATEGORIES ROUTES ==========
-
-// Get all categories (FIXED DATE FORMAT)
 app.get('/api/categories', async (req, res) => {
   try {
     const [categories] = await pool.query(`
@@ -421,7 +394,6 @@ app.get('/api/categories', async (req, res) => {
   }
 });
 
-// Add category
 app.post('/api/categories', async (req, res) => {
   try {
     const { categoryName, description } = req.body;
@@ -456,7 +428,6 @@ app.post('/api/categories', async (req, res) => {
   }
 });
 
-// Update category
 app.put('/api/categories/:id', async (req, res) => {
   try {
     const { categoryName, description } = req.body;
@@ -486,7 +457,6 @@ app.put('/api/categories/:id', async (req, res) => {
   }
 });
 
-// Delete category
 app.delete('/api/categories/:id', async (req, res) => {
   try {
     const [items] = await pool.query(
@@ -516,9 +486,6 @@ app.delete('/api/categories/:id', async (req, res) => {
   }
 });
 
-// ========== LOCATIONS ROUTES ==========
-
-// Get all locations (FIXED DATE FORMAT)
 app.get('/api/locations', async (req, res) => {
   try {
     const [locations] = await pool.query(`
@@ -538,7 +505,6 @@ app.get('/api/locations', async (req, res) => {
   }
 });
 
-// Add location
 app.post('/api/locations', async (req, res) => {
   try {
     const { locationName, description } = req.body;
@@ -581,7 +547,6 @@ app.post('/api/locations', async (req, res) => {
   }
 });
 
-// Update location
 app.put('/api/locations/:id', async (req, res) => {
   try {
     const { locationName, description } = req.body;
@@ -623,7 +588,6 @@ app.put('/api/locations/:id', async (req, res) => {
   }
 });
 
-// Delete location
 app.delete('/api/locations/:id', async (req, res) => {
   try {
     const [items] = await pool.query(
@@ -658,9 +622,6 @@ app.delete('/api/locations/:id', async (req, res) => {
   }
 });
 
-// ========== SUPPLIERS ROUTES ==========
-
-// Get all suppliers (FIXED DATE FORMAT)
 app.get('/api/suppliers', async (req, res) => {
   try {
     const [suppliers] = await pool.query(`
@@ -684,7 +645,6 @@ app.get('/api/suppliers', async (req, res) => {
   }
 });
 
-// Add supplier
 app.post('/api/suppliers', async (req, res) => {
   try {
     const { 
@@ -715,7 +675,6 @@ app.post('/api/suppliers', async (req, res) => {
   }
 });
 
-// Update supplier
 app.put('/api/suppliers/:id', async (req, res) => {
   try {
     const { 
@@ -746,7 +705,6 @@ app.put('/api/suppliers/:id', async (req, res) => {
   }
 });
 
-// Delete supplier
 app.delete('/api/suppliers/:id', async (req, res) => {
   try {
     const [items] = await pool.query(
@@ -773,9 +731,6 @@ app.delete('/api/suppliers/:id', async (req, res) => {
   }
 });
 
-// ========== TRANSACTIONS ROUTES ==========
-
-// Get all transactions
 app.get('/api/transactions', async (req, res) => {
   try {
     const [transactions] = await pool.query(`
@@ -797,7 +752,6 @@ app.get('/api/transactions', async (req, res) => {
   }
 });
 
-// Add transaction
 app.post('/api/transactions', async (req, res) => {
   const connection = await pool.getConnection();
   try {
@@ -835,7 +789,6 @@ app.post('/api/transactions', async (req, res) => {
       [stockAfter, itemId]
     );
     
-    // ✅ ENHANCED: Better logging for damaged item creation
     if (transactionType === 'OUT' && reason === 'Damaged/Discarded') {
       console.log('🔴 Damaged item detected! Creating entry...');
       
@@ -873,9 +826,6 @@ app.post('/api/transactions', async (req, res) => {
   }
 });
 
-// ========== APPOINTMENTS ROUTES ==========
-
-// Get all appointments
 app.get('/api/appointments', async (req, res) => {
   try {
     const [appointments] = await pool.query(`
@@ -912,7 +862,6 @@ app.get('/api/appointments', async (req, res) => {
   }
 });
 
-// Add appointment
 app.post('/api/appointments', async (req, res) => {
   const connection = await pool.getConnection();
   try {
@@ -958,7 +907,6 @@ app.post('/api/appointments', async (req, res) => {
   }
 });
 
-// Update appointment
 app.put('/api/appointments/:id', async (req, res) => {
   const connection = await pool.getConnection();
   try {
@@ -1003,7 +951,6 @@ app.put('/api/appointments/:id', async (req, res) => {
   }
 });
 
-// Complete appointment
 app.post('/api/appointments/:id/complete', async (req, res) => {
   const connection = await pool.getConnection();
   try {
@@ -1065,7 +1012,6 @@ app.post('/api/appointments/:id/complete', async (req, res) => {
   }
 });
 
-// Cancel appointment
 app.post('/api/appointments/:id/cancel', async (req, res) => {
   try {
     const [result] = await pool.query(
@@ -1084,9 +1030,6 @@ app.post('/api/appointments/:id/cancel', async (req, res) => {
   }
 });
 
-// ========== DAMAGED ITEMS ROUTES ==========
-
-// Get all damaged items
 app.get('/api/damaged-items', async (req, res) => {
   try {
     const [items] = await pool.query(`
@@ -1107,7 +1050,6 @@ app.get('/api/damaged-items', async (req, res) => {
   }
 });
 
-// Update damaged item
 app.put('/api/damaged-items/:id', async (req, res) => {
   try {
     const { status, notes } = req.body;
@@ -1128,7 +1070,6 @@ app.put('/api/damaged-items/:id', async (req, res) => {
   }
 });
 
-// Remove damaged item
 app.delete('/api/damaged-items/:id', async (req, res) => {
   try {
     const [result] = await pool.query(
@@ -1147,9 +1088,6 @@ app.delete('/api/damaged-items/:id', async (req, res) => {
   }
 });
 
-// ========== ACTIVITY LOGS ROUTES ==========
-
-// Get all activity logs
 app.get('/api/activity-logs', async (req, res) => {
   try {
     const [logs] = await pool.query(`
@@ -1169,7 +1107,6 @@ app.get('/api/activity-logs', async (req, res) => {
   }
 });
 
-// Add activity log
 app.post('/api/activity-logs', async (req, res) => {
   try {
     const { itemName, action, userId, details } = req.body;
@@ -1202,9 +1139,6 @@ app.post('/api/activity-logs', async (req, res) => {
   }
 });
 
-// ========== LOW STOCK ALERTS ROUTES ==========
-
-// Get items with low stock
 app.get('/api/low-stock-items', async (req, res) => {
   try {
     const [items] = await pool.query(`
@@ -1227,7 +1161,6 @@ app.get('/api/low-stock-items', async (req, res) => {
   }
 });
 
-// Get items that need low stock alerts
 app.get('/api/low-stock-alerts/pending', async (req, res) => {
   try {
     const [items] = await pool.query(`
@@ -1252,7 +1185,6 @@ app.get('/api/low-stock-alerts/pending', async (req, res) => {
   }
 });
 
-// Mark low stock alert as sent
 app.post('/api/low-stock-alerts/:itemId', async (req, res) => {
   try {
     await pool.query(
@@ -1267,7 +1199,6 @@ app.post('/api/low-stock-alerts/:itemId', async (req, res) => {
   }
 });
 
-// Clear low stock alert
 app.delete('/api/low-stock-alerts/:itemId', async (req, res) => {
   try {
     await pool.query(
@@ -1282,9 +1213,6 @@ app.delete('/api/low-stock-alerts/:itemId', async (req, res) => {
   }
 });
 
-// ========== DASHBOARD STATISTICS ==========
-
-// Get dashboard statistics
 app.get('/api/dashboard/stats', async (req, res) => {
   try {
     const [totalItems] = await pool.query(
@@ -1332,9 +1260,6 @@ app.get('/api/dashboard/stats', async (req, res) => {
   }
 });
 
-// ========== REPORTS ==========
-
-// Get activity logs for reporting
 app.get('/api/reports/activity-logs', async (req, res) => {
   try {
     const { action, month, year } = req.query;
@@ -1377,7 +1302,6 @@ app.get('/api/reports/activity-logs', async (req, res) => {
   }
 });
 
-// Get inventory report
 app.get('/api/reports/inventory', async (req, res) => {
   try {
     const [items] = await pool.query(`
@@ -1400,7 +1324,6 @@ app.get('/api/reports/inventory', async (req, res) => {
   }
 });
 
-// Get transactions report
 app.get('/api/reports/transactions', async (req, res) => {
   try {
     const { startDate, endDate, type } = req.query;
@@ -1445,20 +1368,14 @@ app.get('/api/reports/transactions', async (req, res) => {
   }
 });
 
-// ========== ERROR HANDLING ==========
-
-// 404 handler
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
-// Global error handler
 app.use((err, req, res, next) => {
   console.error('Server error:', err);
   res.status(500).json({ error: 'Internal server error' });
 });
-
-// ========== START SERVER ==========
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

@@ -1,5 +1,3 @@
-// ✅ UPDATED: Added data normalization for email service compatibility
-
 import { useState, useMemo } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from './ui/table'
@@ -11,7 +9,6 @@ import EditAppointmentDialog from './EditAppointmentDialog'
 import ViewAppointmentDialog from './ViewAppointmentDialog'
 import { normalizeSuppliers, normalizeAppointments } from '../lib/dataMapper'
 
-// Import email functions
 import { sendAppointmentEmail, sendAppointmentCancelEmail } from '../lib/emailService'
 
 export default function AppointmentsPage({ 
@@ -31,7 +28,6 @@ export default function AppointmentsPage({
   const [editingAppointment, setEditingAppointment] = useState(null)
   const [viewingAppointment, setViewingAppointment] = useState(null)
 
-  // ✅ Normalize data
   const normalizedSuppliers = useMemo(() => 
     normalizeSuppliers(suppliers), 
     [suppliers]
@@ -42,7 +38,6 @@ export default function AppointmentsPage({
     [appointments]
   )
 
-  // Filter appointments
   const filteredAppointments = normalizedAppointments.filter(appointment => {
     const matchesSearch = 
       appointment.supplierName.toLowerCase().includes(searchTerm.toLowerCase()) ||

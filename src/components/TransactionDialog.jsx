@@ -13,7 +13,6 @@ export default function TransactionDialog({ open, onOpenChange, item, user, onTr
     reason: ''
   })
 
-  // Normalize item data
   const itemName = item?.itemName || item?.item_name || ''
   const category = item?.category || item?.categoryName || item?.category_name || ''
   const location = item?.location || item?.locationName || item?.location_name || ''
