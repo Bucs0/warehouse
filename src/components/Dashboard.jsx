@@ -85,6 +85,76 @@ export default function Dashboard({ user, inventoryData, activityLogs, onNavigat
     }
   }
 
+  const handleDeleteUser = async (userId) => {
+    const userToDelete = approvedUsers.find(u => u.id === userId)
+    if (!userToDelete) return
+    
+    console.log('🗑️ Attempting to delete user:', userToDelete)
+    
+    if (!window.confirm(`⚠️ WARNING: Are you sure you want to permanently delete ${userToDelete.name}'s account?\n\nThis action cannot be undone and will:\n- Remove all user access\n- Delete the user account\n\nClick OK to proceed, then type the username to confirm.`)) {
+      return
+    }
+    
+    const confirmation = prompt(`Type "${userToDelete.username}" (case-sensitive) to confirm deletion:`)
+    
+    if (confirmation === null) {
+      console.log('🚫 User cancelled deletion')
+      return
+    }
+    
+    // Trim whitespace and check match
+    const trimmedConfirmation = confirmation.trim()
+    
+    if (trimmedConfirmation !== userToDelete.username) {
+      console.log('❌ Username mismatch:', {
+        expected: userToDelete.username,
+        received: trimmedConfirmation
+      })
+      alert(`Deletion cancelled - username did not match.\n\nExpected: "${userToDelete.username}"\nYou typed: "${trimmedConfirmation}"`)
+      return
+    }
+    
+    console.log('✅ Username confirmed, proceeding with deletion...')
+    
+    try {
+      console.log('📤 Calling deleteUser API for user ID:', userId)
+      const result = await authAPI.deleteUser(userId)
+      console.log('📬 API response:', result)
+      
+      if (onLogActivity) {
+        await onLogActivity(
+          `User Account: ${userToDelete.name}`,
+          'Deleted',
+          `Permanently deleted staff account for ${userToDelete.name} (@${userToDelete.username})`
+        )
+      }
+      
+      // Reload users
+      await loadUsers()
+      alert('✅ User account deleted successfully!')
+    } catch (error) {
+      console.error('❌ Error deleting user:')
+      console.error('Error object:', error)
+      console.error('Error message:', error.message)
+      console.error('Error response:', error.response)
+      
+      // More detailed error message
+      let errorMessage = 'Failed to delete user: '
+      
+      if (error.message.includes('foreign key constraint')) {
+        errorMessage += 'Database constraint error. The user has related records that prevent deletion. Please run the database migration to fix this.'
+      } else if (error.message.includes('Route not found')) {
+        errorMessage += 'API endpoint not found. Please make sure the backend server is running and up to date.'
+      } else if (error.message.includes('Server error')) {
+        errorMessage += 'Server encountered an error. This is likely due to database foreign key constraints. Please check the backend logs and run the migration script.'
+      } else {
+        errorMessage += error.message
+      }
+      
+      alert(errorMessage)
+    }
+  }
+
   // Calculate statistics
   const totalItems = inventoryData.length
   const lowStockItems = inventoryData.filter(item => item.quantity <= item.reorderLevel || item.quantity <= item.reorder_level).length
@@ -366,12 +436,28 @@ export default function Dashboard({ user, inventoryData, activityLogs, onNavigat
                 <h3 className="font-semibold mb-4">Approved Staff Members ({approvedUsers.length})</h3>
                 <div className="space-y-2">
                   {approvedUsers.map(approvedUser => (
-                    <div key={approvedUser.id} className="border rounded p-3 bg-green-50 border-green-200 flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">{approvedUser.name}</p>
-                        <p className="text-sm text-muted-foreground">@{approvedUser.username} • {approvedUser.email}</p>
+                    <div key={approvedUser.id} className="border rounded p-3 bg-green-50 border-green-200">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <p className="font-medium">{approvedUser.name}</p>
+                          <p className="text-sm text-muted-foreground">@{approvedUser.username} • {approvedUser.email}</p>
+                          <p className="text-xs text-muted-foreground mt-1">Role: {approvedUser.role}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="success">Approved</Badge>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleDeleteUser(approvedUser.id)}
+                            className="ml-2"
+                          >
+                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Delete Account
+                          </Button>
+                        </div>
                       </div>
-                      <Badge variant="success">Approved</Badge>
                     </div>
                   ))}
                 </div>

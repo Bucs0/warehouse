@@ -40,6 +40,7 @@ export const authAPI = {
   getApprovedUsers: () => apiCall('/users/approved'),
   approveUser: (userId) => apiCall(`/users/${userId}/approve`, { method: 'POST' }),
   rejectUser: (userId) => apiCall(`/users/${userId}/reject`, { method: 'DELETE' }),
+  deleteUser: (userId) => apiCall(`/users/${userId}`, { method: 'DELETE' }),
 };
 
 // ========== INVENTORY API ==========

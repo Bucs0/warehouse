@@ -154,7 +154,7 @@ app.post('/api/users/:id/approve', async (req, res) => {
   }
 });
 
-// Reject user
+// Reject user (pending signup rejection) - Specific route must come FIRST
 app.delete('/api/users/:id/reject', async (req, res) => {
   try {
     const [result] = await pool.query(
@@ -170,6 +170,77 @@ app.delete('/api/users/:id/reject', async (req, res) => {
   } catch (error) {
     console.error('Error rejecting user:', error);
     res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Delete approved user (Admin only) - General route comes AFTER specific routes
+app.delete('/api/users/:id', async (req, res) => {
+  try {
+    console.log('🗑️ Delete user request for ID:', req.params.id);
+    console.log('📋 Request method:', req.method);
+    console.log('📋 Request URL:', req.url);
+    
+    // Validate ID is a number
+    const userId = parseInt(req.params.id);
+    if (isNaN(userId)) {
+      console.log('❌ Invalid user ID');
+      return res.status(400).json({ error: 'Invalid user ID' });
+    }
+    
+    // First check if user exists and is not an admin
+    console.log('🔍 Checking if user exists...');
+    const [users] = await pool.query(
+      'SELECT id, username, role, status FROM users WHERE id = ?',
+      [userId]
+    );
+    
+    console.log('📊 Query result:', users);
+    
+    if (users.length === 0) {
+      console.log('❌ User not found in database');
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    const user = users[0];
+    console.log('👤 User found:', user);
+    
+    // Prevent deletion of admin accounts
+    if (user.role === 'Admin') {
+      console.log('🚫 Cannot delete admin account');
+      return res.status(403).json({ error: 'Cannot delete admin accounts' });
+    }
+    
+    // Delete the user
+    console.log('🗑️ Attempting to delete user...');
+    const [result] = await pool.query(
+      'DELETE FROM users WHERE id = ? AND role != "Admin"',
+      [userId]
+    );
+    
+    console.log('📊 Delete result:', result);
+    
+    if (result.affectedRows === 0) {
+      console.log('❌ Delete failed - no rows affected');
+      return res.status(400).json({ error: 'Unable to delete user. User may be an admin or already deleted.' });
+    }
+    
+    console.log('✅ User deleted successfully, affected rows:', result.affectedRows);
+    res.json({ 
+      message: 'User account deleted successfully',
+      deletedUser: {
+        id: user.id,
+        username: user.username
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error deleting user:');
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    console.error('Error code:', error.code);
+    res.status(500).json({ 
+      error: 'Server error',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
