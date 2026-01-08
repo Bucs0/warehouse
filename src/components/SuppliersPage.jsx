@@ -74,25 +74,45 @@ export default function SuppliersPage({
     onDeleteSupplier(supplier.id)
   }
 
-  const handleAddSupplierWithItems = (supplierData) => {
+  const handleAddSupplierWithItems = async (supplierData) => {
     if (supplierData.newItems && supplierData.newItems.length > 0) {
-      setPendingSupplierData(supplierData)
-      setPendingNewItems(supplierData.newItems)
-      setCurrentNewItemIndex(0)
-      setCreatedItemIds([])
-      setIsEditingMode(false) // Adding new supplier
-      setIsNewItemDialogOpen(true)
-    } else {
-      const finalSupplier = {
-        id: Date.now(),
+      // ✅ Create supplier FIRST, then add items with the new supplier ID
+      console.log('📦 Creating supplier first before adding items...')
+      
+      const newSupplier = {
         supplierName: supplierData.supplierName,
         contactPerson: supplierData.contactPerson,
         contactEmail: supplierData.contactEmail,
         contactPhone: supplierData.contactPhone,
         address: supplierData.address,
         isActive: supplierData.isActive,
-        suppliedItemIds: supplierData.suppliedItemIds,
-        dateAdded: new Date().toLocaleDateString('en-PH')
+        suppliedItemIds: supplierData.suppliedItemIds // Existing items selected
+      }
+      
+      // Create the supplier and get its ID
+      await onAddSupplier(newSupplier)
+      
+      // Wait a bit for the supplier to be created and get the latest suppliers list
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
+      // Now set up the new items to be added
+      // We'll need to get the newly created supplier from the updated suppliers list
+      setPendingSupplierData({ ...supplierData, justCreated: true })
+      setPendingNewItems(supplierData.newItems)
+      setCurrentNewItemIndex(0)
+      setCreatedItemIds([])
+      setIsEditingMode(false)
+      setIsNewItemDialogOpen(true)
+    } else {
+      // No new items, just create supplier with existing items
+      const finalSupplier = {
+        supplierName: supplierData.supplierName,
+        contactPerson: supplierData.contactPerson,
+        contactEmail: supplierData.contactEmail,
+        contactPhone: supplierData.contactPhone,
+        address: supplierData.address,
+        isActive: supplierData.isActive,
+        suppliedItemIds: supplierData.suppliedItemIds
       }
       onAddSupplier(finalSupplier)
     }
@@ -124,6 +144,21 @@ export default function SuppliersPage({
       isEditingMode
     })
     
+    // ✅ Find the supplier ID
+    let supplierId = null
+    if (isEditingMode) {
+      // Editing existing supplier - use the ID from pendingSupplierData
+      supplierId = pendingSupplierData.id
+    } else if (pendingSupplierData.justCreated) {
+      // New supplier was just created - find it by name in the suppliers list
+      const newlyCreatedSupplier = suppliers.find(s => 
+        s.supplier_name === pendingSupplierData.supplierName || 
+        s.supplierName === pendingSupplierData.supplierName
+      )
+      supplierId = newlyCreatedSupplier?.id
+      console.log('🆕 Found newly created supplier ID:', supplierId)
+    }
+    
     // ✅ Structure the item data correctly for handleAddItem
     const newItem = {
       itemName: itemName,
@@ -132,8 +167,7 @@ export default function SuppliersPage({
       location: itemData.location,
       reorderLevel: itemData.reorderLevel || 10,
       price: itemData.price || 0,
-      // ✅ Set supplierId if editing existing supplier
-      supplierId: isEditingMode ? pendingSupplierData.id : null,
+      supplierId: supplierId, // ✅ Now this will have the correct supplier ID
       damagedStatus: 'Good',
       dateAdded: new Date().toISOString().split('T')[0]
     }
@@ -148,25 +182,8 @@ export default function SuppliersPage({
     if (currentNewItemIndex < pendingNewItems.length - 1) {
       setCurrentNewItemIndex(currentNewItemIndex + 1)
     } else {
-      // All items added - now create or update supplier
-      if (isEditingMode) {
-        // Update existing supplier
-        console.log('✅ All items added, updating supplier:', pendingSupplierData)
-        await onEditSupplier(pendingSupplierData)
-      } else {
-        // Create new supplier
-        const finalSupplier = {
-          supplierName: pendingSupplierData.supplierName,
-          contactPerson: pendingSupplierData.contactPerson,
-          contactEmail: pendingSupplierData.contactEmail,
-          contactPhone: pendingSupplierData.contactPhone,
-          address: pendingSupplierData.address,
-          isActive: pendingSupplierData.isActive
-        }
-        
-        console.log('✅ All items added, creating supplier:', finalSupplier)
-        await onAddSupplier(finalSupplier)
-      }
+      // All items added
+      console.log('✅ All items added successfully')
       
       setIsNewItemDialogOpen(false)
       setPendingNewItems([])

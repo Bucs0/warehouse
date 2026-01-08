@@ -490,7 +490,8 @@ export default function App() {
       
       const currentDate = newSupplier.dateAdded || new Date().toISOString().split('T')[0]
       
-      await suppliersAPI.add({
+      // Create the supplier first
+      const result = await suppliersAPI.add({
         supplierName: newSupplier.supplierName,
         contactPerson: newSupplier.contactPerson,
         contactEmail: newSupplier.contactEmail || '',
@@ -500,16 +501,55 @@ export default function App() {
         dateAdded: currentDate
       })
       
+      console.log('✅ Supplier created with ID:', result.id)
+      
+      // If there are existing items to assign, update them
+      if (newSupplier.suppliedItemIds && newSupplier.suppliedItemIds.length > 0) {
+        console.log('📦 Assigning existing items to new supplier:', newSupplier.suppliedItemIds)
+        
+        // Update each selected item to have this supplier
+        const updatePromises = newSupplier.suppliedItemIds.map(async (itemId) => {
+          const item = inventoryData.find(i => i.id === itemId)
+          if (!item) return null
+          
+          const category = categories.find(c => 
+            c.category_name === item.category || c.categoryName === item.category
+          )
+          const location = locations.find(l => 
+            l.location_name === item.location || l.locationName === item.location
+          )
+          
+          return inventoryAPI.update(itemId, {
+            itemName: item.item_name || item.itemName,
+            categoryId: category?.id,
+            quantity: item.quantity,
+            locationId: location?.id,
+            reorderLevel: item.reorder_level || item.reorderLevel,
+            price: item.price,
+            supplierId: result.id, // ✅ Assign to new supplier
+            damagedStatus: item.damaged_status || item.damagedStatus || 'Good'
+          })
+        })
+        
+        await Promise.all(updatePromises.filter(Boolean))
+        console.log(`✅ Assigned ${newSupplier.suppliedItemIds.length} existing items to supplier`)
+      }
+      
       await addActivityLog(
         newSupplier.supplierName,
         'Added',
-        'New supplier added'
+        `New supplier added${newSupplier.suppliedItemIds?.length ? ` with ${newSupplier.suppliedItemIds.length} items` : ''}`
       )
       
-      console.log('✅ Supplier added successfully, reloading suppliers...')
+      console.log('✅ Supplier added successfully, reloading data...')
       
-      const sups = await suppliersAPI.getAll()
+      // Reload both suppliers and inventory
+      const [sups, inventory] = await Promise.all([
+        suppliersAPI.getAll(),
+        inventoryAPI.getAll()
+      ])
       setSuppliers(sups)
+      setInventoryData(inventory)
     } catch (error) {
       console.error('❌ Error adding supplier:', error)
       alert('Failed to add supplier: ' + error.message)
