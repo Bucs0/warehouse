@@ -27,6 +27,7 @@ export default function InventoryTable({
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
   const [filterStatus, setFilterStatus] = useState('all')
+  const [filterCategory, setFilterCategory] = useState('all')
   const [isLocationDialogOpen, setIsLocationDialogOpen] = useState(false)
 
   // Simple normalization - handles both camelCase and snake_case
@@ -53,6 +54,15 @@ export default function InventoryTable({
     return inventoryData.map(normalizeItem).filter(Boolean)
   }, [inventoryData])
 
+  // Get unique categories from inventory
+  const uniqueCategories = useMemo(() => {
+    const cats = new Set()
+    normalizedInventory.forEach(item => {
+      if (item.category) cats.add(item.category)
+    })
+    return Array.from(cats).sort()
+  }, [normalizedInventory])
+
   // Filter items
   const filteredItems = useMemo(() => {
     return normalizedInventory.filter(item => {
@@ -72,9 +82,14 @@ export default function InventoryTable({
         matchesStatus = item.quantity <= item.reorderLevel
       }
 
-      return matchesSearch && matchesStatus
+      let matchesCategory = true
+      if (filterCategory !== 'all') {
+        matchesCategory = item.category === filterCategory
+      }
+
+      return matchesSearch && matchesStatus && matchesCategory
     })
-  }, [normalizedInventory, searchTerm, filterStatus])
+  }, [normalizedInventory, searchTerm, filterStatus, filterCategory])
 
   const lowStockCount = normalizedInventory.filter(item => 
     item.quantity <= item.reorderLevel
@@ -134,16 +149,34 @@ export default function InventoryTable({
 
           {/* Search and Filters */}
           <div className="flex flex-col md:flex-row gap-4 mt-4">
-            <div className="flex-1">
+            <div className="flex-1 relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
               <Input
                 type="search"
                 placeholder="Search by name, category, or location..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white shadow-sm"
               />
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
+              {/* Category Filter Dropdown */}
+              <select
+                className="h-9 rounded-md border-2 border-blue-500 bg-blue-50 px-3 py-1 text-sm font-medium min-w-[140px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:bg-blue-100 transition-colors"
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value)}
+              >
+                <option value="all">All Categories</option>
+                {uniqueCategories.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+
               <Button 
                 variant={filterStatus === 'all' ? 'default' : 'outline'}
                 size="sm"
@@ -196,6 +229,7 @@ export default function InventoryTable({
                             <div className="text-sm text-muted-foreground">
                               {searchTerm && <p>Search: "{searchTerm}"</p>}
                               {filterStatus !== 'all' && <p>Filter: {filterStatus}</p>}
+                              {filterCategory !== 'all' && <p>Category: {filterCategory}</p>}
                               <p className="mt-2">Try different search terms or filters</p>
                             </div>
                           </>

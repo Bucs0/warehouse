@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from './ui/table'
 import { Badge } from './ui/badge'
@@ -14,9 +14,42 @@ export default function StockTransactions({
 }) {
   const [searchTerm, setSearchTerm] = useState('')
   const [itemSearchTerm, setItemSearchTerm] = useState('')
+  const [itemCategoryFilter, setItemCategoryFilter] = useState('all')
   const [filterType, setFilterType] = useState('all')
   const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false)
   const [selectedItem, setSelectedItem] = useState(null)
+  const [selectedDate, setSelectedDate] = useState('')
+  const [dateRange, setDateRange] = useState({ start: '', end: '' })
+  const [selectedMonth, setSelectedMonth] = useState('')
+  const [selectedYear, setSelectedYear] = useState('')
+
+  // Get unique dates from transaction history
+  const uniqueDates = useMemo(() => {
+    const dates = new Set()
+    transactionHistory.forEach(transaction => {
+      const dateStr = transaction.timestamp.split(' ')[0] // Extract date part
+      dates.add(dateStr)
+    })
+    return Array.from(dates).sort((a, b) => new Date(b) - new Date(a)) // Sort newest first
+  }, [transactionHistory])
+
+  // Get unique months and years
+  const availableMonthsYears = useMemo(() => {
+    const months = new Set()
+    const years = new Set()
+    transactionHistory.forEach(transaction => {
+      const dateStr = transaction.timestamp.split(' ')[0]
+      const date = new Date(dateStr)
+      if (!isNaN(date)) {
+        months.add(date.getMonth()) // 0-11
+        years.add(date.getFullYear())
+      }
+    })
+    return {
+      months: Array.from(months).sort((a, b) => a - b),
+      years: Array.from(years).sort((a, b) => b - a) // Newest first
+    }
+  }, [transactionHistory])
 
   // Filter transactions (backend already returns newest first)
   const filteredTransactions = transactionHistory.filter(transaction => {
@@ -30,8 +63,73 @@ export default function StockTransactions({
     
     const matchesType = filterType === 'all' || transaction.transactionType === filterType || transaction.transaction_type === filterType
 
-    return matchesSearch && matchesType
+    // Date filtering
+    const transactionDate = transaction.timestamp.split(' ')[0]
+    const date = new Date(transactionDate)
+    let matchesDate = true
+    
+    // Month and Year filter
+    if (selectedMonth !== '' || selectedYear !== '') {
+      if (selectedMonth !== '' && !isNaN(date)) {
+        matchesDate = matchesDate && date.getMonth() === parseInt(selectedMonth)
+      }
+      if (selectedYear !== '' && !isNaN(date)) {
+        matchesDate = matchesDate && date.getFullYear() === parseInt(selectedYear)
+      }
+    } else if (selectedDate) {
+      matchesDate = transactionDate === selectedDate
+    } else if (dateRange.start && dateRange.end) {
+      matchesDate = transactionDate >= dateRange.start && transactionDate <= dateRange.end
+    } else if (dateRange.start) {
+      matchesDate = transactionDate >= dateRange.start
+    } else if (dateRange.end) {
+      matchesDate = transactionDate <= dateRange.end
+    }
+
+    return matchesSearch && matchesType && matchesDate
   })
+
+  // Navigate to previous/next date
+  const navigateDate = (direction) => {
+    if (!selectedDate) {
+      // If no date selected, select the most recent date
+      if (uniqueDates.length > 0) {
+        setSelectedDate(uniqueDates[0])
+      }
+      return
+    }
+
+    const currentIndex = uniqueDates.indexOf(selectedDate)
+    if (currentIndex === -1) return
+
+    if (direction === 'prev' && currentIndex < uniqueDates.length - 1) {
+      setSelectedDate(uniqueDates[currentIndex + 1])
+    } else if (direction === 'next' && currentIndex > 0) {
+      setSelectedDate(uniqueDates[currentIndex - 1])
+    }
+  }
+
+  const clearDateFilters = () => {
+    setSelectedDate('')
+    setDateRange({ start: '', end: '' })
+    setSelectedMonth('')
+    setSelectedYear('')
+  }
+
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ]
+
+  // Get unique categories from inventory items
+  const itemCategories = useMemo(() => {
+    const cats = new Set()
+    inventoryData.forEach(item => {
+      const category = item.category || item.categoryName || item.category_name
+      if (category) cats.add(category)
+    })
+    return Array.from(cats).sort()
+  }, [inventoryData])
 
   // Filter items for transaction
   const filteredItems = inventoryData.filter(item => {
@@ -39,9 +137,13 @@ export default function StockTransactions({
     const category = item.category || item.categoryName || item.category_name || ''
     const location = item.location || item.locationName || item.location_name || ''
     
-    return itemName.toLowerCase().includes(itemSearchTerm.toLowerCase()) ||
+    const matchesSearch = itemName.toLowerCase().includes(itemSearchTerm.toLowerCase()) ||
            category.toLowerCase().includes(itemSearchTerm.toLowerCase()) ||
            location.toLowerCase().includes(itemSearchTerm.toLowerCase())
+    
+    const matchesCategory = itemCategoryFilter === 'all' || category === itemCategoryFilter
+    
+    return matchesSearch && matchesCategory
   })
 
   const totalIn = transactionHistory.filter(t => (t.transactionType || t.transaction_type) === 'IN')
@@ -125,19 +227,40 @@ export default function StockTransactions({
             Search and click on an item to record a transaction
           </p>
           
-          <div className="mt-4">
-            <Input
-              type="search"
-              placeholder="🔍 Search items by name, category, or location..."
-              value={itemSearchTerm}
-              onChange={(e) => setItemSearchTerm(e.target.value)}
-            />
+          <div className="flex flex-col md:flex-row gap-3 mt-4">
+            <div className="flex-1 relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <Input
+                type="search"
+                placeholder="Search items by name, category, or location..."
+                value={itemSearchTerm}
+                onChange={(e) => setItemSearchTerm(e.target.value)}
+                className="pl-10 border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white shadow-sm"
+              />
+            </div>
+            
+            <select
+              className="h-10 rounded-md border-2 border-blue-500 bg-blue-50 px-3 py-2 text-sm font-medium min-w-[160px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:bg-blue-100 transition-colors"
+              value={itemCategoryFilter}
+              onChange={(e) => setItemCategoryFilter(e.target.value)}
+            >
+              <option value="all">All Categories</option>
+              {itemCategories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
           </div>
         </CardHeader>
         <CardContent>
           {filteredItems.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              No items found matching "{itemSearchTerm}"
+              <p>No items found</p>
+              {itemSearchTerm && <p className="text-sm mt-1">Search: "{itemSearchTerm}"</p>}
+              {itemCategoryFilter !== 'all' && <p className="text-sm mt-1">Category: {itemCategoryFilter}</p>}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -237,13 +360,84 @@ export default function StockTransactions({
             </div>
           </div>
 
-          <div className="mt-4">
+          <div className="mt-4 relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
             <Input
               type="search"
               placeholder="Search transactions by item, user, or reason..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white shadow-sm"
             />
+          </div>
+
+          {/* Date Navigation */}
+          <div className="mt-4 space-y-3">
+            {/* Month and Year Filters */}
+            <div className="flex flex-col md:flex-row gap-3 items-end">
+              <div className="flex-1">
+                <label className="text-sm font-medium mb-2 block">Filter by Month</label>
+                <select
+                  className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm"
+                  value={selectedMonth}
+                  onChange={(e) => {
+                    setSelectedMonth(e.target.value)
+                    setSelectedDate('')
+                    setDateRange({ start: '', end: '' })
+                  }}
+                >
+                  <option value="">All Months</option>
+                  {availableMonthsYears.months.map(month => (
+                    <option key={month} value={month}>{monthNames[month]}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex-1">
+                <label className="text-sm font-medium mb-2 block">Filter by Year</label>
+                <select
+                  className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm"
+                  value={selectedYear}
+                  onChange={(e) => {
+                    setSelectedYear(e.target.value)
+                    setSelectedDate('')
+                    setDateRange({ start: '', end: '' })
+                  }}
+                >
+                  <option value="">All Years</option>
+                  {availableMonthsYears.years.map(year => (
+                    <option key={year} value={year}>{year}</option>
+                  ))}
+                </select>
+              </div>
+
+              {(selectedMonth || selectedYear) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clearDateFilters}
+                  className="h-9"
+                >
+                  Clear Dates
+                </Button>
+              )}
+            </div>
+
+            {/* Active Filter Display */}
+            {(selectedMonth !== '' || selectedYear !== '') && (
+              <div className="flex items-center gap-2 text-sm flex-wrap">
+                <span className="text-muted-foreground">Showing:</span>
+                <Badge variant="outline">
+                  {selectedMonth !== '' && `${monthNames[parseInt(selectedMonth)]}`}
+                  {selectedMonth !== '' && selectedYear !== '' && ' '}
+                  {selectedYear !== '' && selectedYear}
+                </Badge>
+              </div>
+            )}
           </div>
         </CardHeader>
 

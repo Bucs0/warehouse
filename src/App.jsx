@@ -977,6 +977,7 @@ export default function App() {
           <Dashboard
             user={currentUser}
             inventoryData={inventoryData}
+            damagedItems={damagedItems}
             activityLogs={activityLogs}
             onNavigate={handleNavigate}
             onLogActivity={addActivityLog}

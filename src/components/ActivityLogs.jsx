@@ -77,12 +77,12 @@ export default function ActivityLogs({ activityLogs, currentUser }) {
     return matchesSearch && matchesAction && matchesDate
   }).reverse()
 
-  // Calculate statistics for filtered logs
-  const actionCounts = {
-    Added: filteredLogs.filter(l => l.action === 'Added').length,
-    Edited: filteredLogs.filter(l => l.action === 'Edited').length,
-    Deleted: filteredLogs.filter(l => l.action === 'Deleted').length,
-    Transaction: filteredLogs.filter(l => l.action === 'Transaction').length
+  // Calculate statistics for ALL logs (not filtered)
+  const totalActionCounts = {
+    Added: normalizedLogs.filter(l => l.action === 'Added').length,
+    Edited: normalizedLogs.filter(l => l.action === 'Edited').length,
+    Deleted: normalizedLogs.filter(l => l.action === 'Deleted').length,
+    Transaction: normalizedLogs.filter(l => l.action === 'Transaction').length
   }
 
   // Reset filters
@@ -174,12 +174,18 @@ export default function ActivityLogs({ activityLogs, currentUser }) {
 
           {/* Search and action filter row */}
           <div className="flex flex-col md:flex-row gap-4 mt-4">
-            <div className="flex-1">
+            <div className="flex-1 relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
               <Input
                 type="search"
                 placeholder="Search by item name, user, or action..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white shadow-sm"
               />
             </div>
 
@@ -196,28 +202,28 @@ export default function ActivityLogs({ activityLogs, currentUser }) {
                 size="sm"
                 onClick={() => setFilterAction('Added')}
               >
-                Added ({actionCounts.Added})
+                Added ({totalActionCounts.Added})
               </Button>
               <Button 
                 variant={filterAction === 'Edited' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setFilterAction('Edited')}
               >
-                Edited ({actionCounts.Edited})
+                Edited ({totalActionCounts.Edited})
               </Button>
               <Button 
                 variant={filterAction === 'Deleted' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setFilterAction('Deleted')}
               >
-                Deleted ({actionCounts.Deleted})
+                Deleted ({totalActionCounts.Deleted})
               </Button>
               <Button 
                 variant={filterAction === 'Transaction' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setFilterAction('Transaction')}
               >
-                Transactions ({actionCounts.Transaction})
+                Transactions ({totalActionCounts.Transaction})
               </Button>
             </div>
           </div>
@@ -249,7 +255,7 @@ export default function ActivityLogs({ activityLogs, currentUser }) {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-green-600 font-medium">Items Added</p>
-                  <p className="text-2xl font-bold text-green-900 mt-1">{actionCounts.Added}</p>
+                  <p className="text-2xl font-bold text-green-900 mt-1">{totalActionCounts.Added}</p>
                 </div>
                 <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
                   <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -263,7 +269,7 @@ export default function ActivityLogs({ activityLogs, currentUser }) {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-blue-600 font-medium">Items Edited</p>
-                  <p className="text-2xl font-bold text-blue-900 mt-1">{actionCounts.Edited}</p>
+                  <p className="text-2xl font-bold text-blue-900 mt-1">{totalActionCounts.Edited}</p>
                 </div>
                 <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
                   <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -277,7 +283,7 @@ export default function ActivityLogs({ activityLogs, currentUser }) {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-red-600 font-medium">Items Deleted</p>
-                  <p className="text-2xl font-bold text-red-900 mt-1">{actionCounts.Deleted}</p>
+                  <p className="text-2xl font-bold text-red-900 mt-1">{totalActionCounts.Deleted}</p>
                 </div>
                 <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
                   <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -291,7 +297,7 @@ export default function ActivityLogs({ activityLogs, currentUser }) {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-purple-600 font-medium">Transactions</p>
-                  <p className="text-2xl font-bold text-purple-900 mt-1">{actionCounts.Transaction}</p>
+                  <p className="text-2xl font-bold text-purple-900 mt-1">{totalActionCounts.Transaction}</p>
                 </div>
                 <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
                   <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

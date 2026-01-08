@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
 import { authAPI } from '../lib/api'
 import { normalizeActivityLogs } from '../lib/dataMapper'
 
-export default function Dashboard({ user, inventoryData, activityLogs, onNavigate, onLogActivity }) {
+export default function Dashboard({ user, inventoryData, damagedItems, activityLogs, onNavigate, onLogActivity }) {
   const [isApprovalDialogOpen, setIsApprovalDialogOpen] = useState(false)
   const [pendingUsers, setPendingUsers] = useState([])
   const [approvedUsers, setApprovedUsers] = useState([])
@@ -158,7 +158,8 @@ export default function Dashboard({ user, inventoryData, activityLogs, onNavigat
   // Calculate statistics
   const totalItems = inventoryData.length
   const lowStockItems = inventoryData.filter(item => item.quantity <= item.reorderLevel || item.quantity <= item.reorder_level).length
-  const damagedItems = inventoryData.filter(item => item.damagedStatus === 'Damaged' || item.damaged_status === 'Damaged').length
+  // Count damaged items from the damagedItems array
+  const damagedItemsCount = damagedItems ? damagedItems.length : 0
   const totalValue = inventoryData.reduce((sum, item) => sum + (item.quantity * (item.price || 0)), 0)
 
   // ✅ Normalize activity logs to handle both snake_case and camelCase
@@ -262,7 +263,7 @@ export default function Dashboard({ user, inventoryData, activityLogs, onNavigat
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Damaged Items</p>
-                <h3 className="text-3xl font-bold mt-2 text-red-600">{damagedItems}</h3>
+                <h3 className="text-3xl font-bold mt-2 text-red-600">{damagedItemsCount}</h3>
               </div>
               <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
                 <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
